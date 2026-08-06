@@ -29,13 +29,13 @@ const router = createRouter({
           path: 'documents',
           name: 'DocumentsPage',
           component: () => import('@/views/documents.vue'),
-          meta: { title: '文档管理', breadcrumb: ['文档管理'] },
+          meta: { title: '知识库', breadcrumb: ['知识库'] },
         },
         {
           path: 'debug',
           name: 'DebugPage',
           component: () => import('@/views/debug.vue'),
-          meta: { title: '检索调试', breadcrumb: ['检索调试'] },
+          meta: { title: '检索实验室', breadcrumb: ['检索实验室'] },
         },
         {
           path: 'evaluation',

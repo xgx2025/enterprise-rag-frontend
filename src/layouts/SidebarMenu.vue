@@ -15,8 +15,8 @@ const hoveredItem = ref<string | null>(null)
 
 const menuItems = [
   { path: '/qa', icon: ChatDotRound, label: '企业问答', desc: '智能知识检索' },
-  { path: '/documents', icon: Document, label: '文档管理', desc: '知识库维护' },
-  { path: '/debug', icon: Monitor, label: '检索调试', desc: '召回可视化' },
+  { path: '/documents', icon: Document, label: '知识库', desc: '文档与配置' },
+  { path: '/debug', icon: Monitor, label: '检索实验室', desc: '召回分析' },
   { path: '/evaluation', icon: DataAnalysis, label: '评测中心', desc: '质量度量' },
 ]
 

@@ -1,27 +1,7 @@
 import request from '@/utils/request'
+import type { LoginRequest, UserInfo, LoginResponse, TokenPair, RegisterRequest, ResetPasswordRequest } from '@/api/types'
 
-export interface LoginRequest {
-  username: string
-  password: string
-}
-
-export interface UserInfo {
-  userId: string
-  tenantId: number
-  username: string
-  realName: string
-}
-
-export interface LoginResponse {
-  accessToken: string
-  expiresIn: number
-  userInfo: UserInfo
-}
-
-export interface TokenPair {
-  accessToken: string
-  expiresIn: number
-}
+export type { LoginRequest, UserInfo, LoginResponse, TokenPair, RegisterRequest, ResetPasswordRequest }
 
 export function login(data: LoginRequest): Promise<LoginResponse> {
   return request.post('/auth/login', data).then(res => res.data)
@@ -35,21 +15,8 @@ export function logout(): Promise<void> {
   return request.post('/auth/logout')
 }
 
-export interface RegisterRequest {
-  username: string
-  password: string
-  email: string
-  code: string
-}
-
 export function register(data: RegisterRequest): Promise<void> {
   return request.post('/auth/register', data).then(res => res.data)
-}
-
-export interface ResetPasswordRequest {
-  email: string
-  code: string
-  newPassword: string
 }
 
 export function resetPassword(data: ResetPasswordRequest): Promise<void> {

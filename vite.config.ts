@@ -12,29 +12,10 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/auth': {
+      '/api/v1': {
         target: 'http://localhost:8080',
         changeOrigin: true,
-      },
-      '/chat': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-      '/documents': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-      '/knowledge-bases': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-      '/debug': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-      '/evaluation': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/v1/, ''),
       },
     },
   },

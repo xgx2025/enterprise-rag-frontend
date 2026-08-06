@@ -18,6 +18,7 @@ export const useChatStore = defineStore('chat', () => {
   const sending = ref(false)
   const selectedCitation = ref<Citation | null>(null)
   const activeKnowledgeBaseIds = ref<string[]>([])
+  const retrievalStrategy = ref<string>('hybrid')
 
   // ---- Getters ----
   const hasActiveConversation = computed(() => currentConversation.value !== null)
@@ -121,6 +122,10 @@ export const useChatStore = defineStore('chat', () => {
     activeKnowledgeBaseIds.value = ids
   }
 
+  function setRetrievalStrategy(strategy: string) {
+    retrievalStrategy.value = strategy
+  }
+
   function resetCurrentConversation() {
     currentConversation.value = null
     selectedCitation.value = null
@@ -133,6 +138,7 @@ export const useChatStore = defineStore('chat', () => {
     sending,
     selectedCitation,
     activeKnowledgeBaseIds,
+    retrievalStrategy,
     hasActiveConversation,
     messages,
     loadConversations,
@@ -142,6 +148,7 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     selectCitation,
     setActiveKnowledgeBases,
+    setRetrievalStrategy,
     resetCurrentConversation,
   }
 })

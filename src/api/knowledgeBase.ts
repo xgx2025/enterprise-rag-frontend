@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 import { useMockData, mockDelay, mockId } from '@/composables/useMockData'
-import type { KnowledgeBase } from './types'
+import type { KnowledgeBase } from '@/api/types'
 
 const mockKBs: KnowledgeBase[] = [
   { id: 'kb-finance', name: '财务制度库', documentCount: 12, description: '差旅、报销、采购等财务相关制度' },

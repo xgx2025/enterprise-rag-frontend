@@ -4,12 +4,17 @@
 // ============================================================
 
 import { useAuthStore } from '@/stores/auth'
+import { parseSSEEvent } from '@/api/sse-events'
+import type { SSEEvent } from '@/api/sse-events'
 
 export interface StreamOptions {
   url: string
   body: object
   signal?: AbortSignal
+  /** Raw string chunks (legacy / fallback) */
   onChunk?: (chunk: string) => void
+  /** Typed structured events */
+  onEvent?: (event: SSEEvent) => void
   onDone?: () => void
   onError?: (error: Error) => void
 }
@@ -64,6 +69,10 @@ export function streamPost(opts: StreamOptions): AbortController {
               return
             }
             opts.onChunk?.(data)
+            if (opts.onEvent) {
+              const event = parseSSEEvent(data)
+              if (event) opts.onEvent(event)
+            }
           }
         }
       }

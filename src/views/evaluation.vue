@@ -212,7 +212,6 @@ onMounted(() => { evalStore.fetchLatestResults() })
   border: 1px solid #f3f4f6;
   border-radius: 14px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 
 .cat-title {

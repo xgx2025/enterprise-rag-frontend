@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 import { useMockData, mockDelay, mockId } from '@/composables/useMockData'
-import type { Conversation, ChatMessage, Citation, RetrievalStats, SendMessageRequest } from './types'
+import type { Conversation, ChatMessage, Citation, RetrievalStats, SendMessageRequest } from '@/api/types'
 
 // ========== Mock Data ==========
 

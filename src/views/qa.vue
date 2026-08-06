@@ -72,12 +72,14 @@ watch(() => chatStore.messages.length, () => scrollToBottom(false))
   <div class="qa-page">
     <!-- Left Panel -->
     <div class="qa-left">
-      <KnowledgeBaseList />
       <ConversationHistory />
     </div>
 
     <!-- Center: Chat -->
     <div class="qa-center">
+      <!-- Knowledge base selector -->
+      <KnowledgeBaseList />
+
       <!-- Empty state -->
       <transition name="empty-fade" mode="out-in">
         <div v-if="chatStore.messages.length === 0" key="empty" class="chat-empty">
@@ -135,11 +137,6 @@ watch(() => chatStore.messages.length, () => scrollToBottom(false))
 
       <!-- Input area -->
       <div class="chat-input" :class="{ focused: inputFocused }">
-        <transition name="hint-fade">
-          <div v-if="chatStore.activeKnowledgeBaseIds.length === 0" class="input-hint">
-            ⚠️ 请先在左侧选择知识库，系统将基于选中知识库的内容进行检索回答
-          </div>
-        </transition>
         <div class="input-row">
           <div class="input-wrapper">
             <el-input
@@ -186,7 +183,7 @@ watch(() => chatStore.messages.length, () => scrollToBottom(false))
 <style scoped>
 .qa-page {
   display: grid;
-  grid-template-columns: 280px 1fr 0px;
+  grid-template-columns: 240px 1fr 0px;
   height: 100%;
   overflow: hidden;
   transition: grid-template-columns 0.35s var(--ease-out, cubic-bezier(0.16,1,0.3,1));
@@ -194,7 +191,7 @@ watch(() => chatStore.messages.length, () => scrollToBottom(false))
 
 /* When citation panel is open, expand right column */
 .qa-page:has(.qa-right) {
-  grid-template-columns: 280px 1fr 400px;
+  grid-template-columns: 240px 1fr 400px;
 }
 
 /* ── Left Panel ── */
@@ -304,7 +301,6 @@ watch(() => chatStore.messages.length, () => scrollToBottom(false))
   border-color: #c7d2fe;
   background: #eef2ff;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(99,102,241,0.08);
 }
 
 .sample-card:disabled {

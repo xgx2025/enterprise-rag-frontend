@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { login as loginApi, refreshToken, logout as logoutApi, getCurrentUser } from '@/api/auth'
-import type { LoginRequest, UserInfo } from '@/api/auth'
+import type { LoginRequest, UserInfo } from '@/api/types'
 import router from '@/router'
 
 const ACCESS_TOKEN_KEY = 'access_token'
@@ -11,6 +11,15 @@ export const useAuthStore = defineStore('auth', () => {
   const userInfo = ref<UserInfo | null>(null)
 
   const isAuthenticated = computed(() => !!accessToken.value)
+
+  /** Current tenant name, derived from user info */
+  const currentTenant = computed(() => userInfo.value?.tenantName ?? '星云科技')
+
+  /** Current role label for display */
+  const currentRole = computed(() => {
+    // In demo mode, default to "知识库管理员"
+    return '知识库管理员'
+  })
 
   function setToken(access: string) {
     accessToken.value = access
@@ -64,6 +73,8 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken,
     userInfo,
     isAuthenticated,
+    currentTenant,
+    currentRole,
     login,
     doRefresh,
     fetchUserInfo,

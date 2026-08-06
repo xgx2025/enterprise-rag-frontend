@@ -263,7 +263,6 @@ watch(
   border-radius: 14px;
   padding: 16px 20px;
   margin-bottom: 18px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 
 .toolbar-main {
@@ -352,7 +351,6 @@ watch(
   border: 1px solid #f3f4f6;
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 
 .pagination-wrap {

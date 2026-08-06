@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
 const request = axios.create({
-  baseURL: '',
+  baseURL: '/api/v1',
   timeout: 15000,
   withCredentials: true,
 })

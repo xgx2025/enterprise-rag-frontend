@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 import { useMockData, mockDelay } from '@/composables/useMockData'
-import type { EvalRunResult, EvalMetrics, StrategyComparison, EvalCategoryBreakdown } from './types'
+import type { EvalRunResult, EvalMetrics, StrategyComparison, EvalCategoryBreakdown } from '@/api/types'
 
 // ========== Mock Data ==========
 

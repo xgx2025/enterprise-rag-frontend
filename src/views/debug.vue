@@ -210,7 +210,6 @@ const totalTime = () => {
   border-radius: 14px;
   padding: 16px 20px;
   margin-bottom: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 
 .timing-title {
@@ -271,7 +270,6 @@ const totalTime = () => {
   border: 1px solid #f3f4f6;
   border-radius: 14px;
   padding: 8px 20px 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 
 .tab-badge {

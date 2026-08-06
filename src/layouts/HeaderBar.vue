@@ -44,6 +44,12 @@ async function handleLogout() {
     </div>
 
     <div class="header-right">
+      <!-- Tenant badge -->
+      <div class="tenant-badge" v-if="authStore.currentTenant">
+        <span class="tenant-label">当前企业</span>
+        <span class="tenant-name">{{ authStore.currentTenant }}</span>
+      </div>
+
       <!-- Quick actions -->
       <div class="quick-actions">
         <el-tooltip content="设置" placement="bottom" :show-after="500">
@@ -62,7 +68,7 @@ async function handleLogout() {
           </div>
           <div class="user-info">
             <span class="user-name">{{ authStore.userInfo?.realName || authStore.userInfo?.username }}</span>
-            <span class="user-role">知识管理员</span>
+            <span class="user-role">{{ authStore.currentRole }}</span>
           </div>
           <el-icon class="dropdown-arrow"><ArrowDown /></el-icon>
         </div>
@@ -166,6 +172,29 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* Tenant badge */
+.tenant-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  margin-right: 8px;
+  font-size: 12px;
+}
+
+.tenant-label {
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.tenant-name {
+  color: #4f46e5;
+  font-weight: 600;
 }
 
 /* Quick action buttons */

@@ -5,7 +5,7 @@ import type {
   DocumentQueryParams,
   PaginatedResult,
   ChunkItem,
-} from './types'
+} from '@/api/types'
 
 // ========== Mock Data ==========
 
