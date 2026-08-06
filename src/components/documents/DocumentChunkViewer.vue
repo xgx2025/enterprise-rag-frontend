@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
+import { ElMessage } from 'element-plus'
+import { Link } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   visible: boolean
@@ -13,6 +15,22 @@ const emit = defineEmits<{
 }>()
 
 const kbStore = useKnowledgeBaseStore()
+
+function chunkType(metadata: Record<string, unknown> | string): string {
+  if (typeof metadata === 'string') {
+    try { return String(JSON.parse(metadata).chunkType || 'CHILD') } catch { return 'CHILD' }
+  }
+  return String(metadata?.chunkType || 'CHILD')
+}
+
+async function previewOriginal() {
+  if (!props.documentId) return
+  try {
+    await kbStore.openDocumentPreview(props.documentId)
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || e?.message || '获取预览地址失败')
+  }
+}
 
 watch(() => props.visible, (val) => {
   if (val && props.documentId) {
@@ -32,8 +50,11 @@ watch(() => props.visible, (val) => {
   >
     <template #header>
       <div class="drawer-header">
-        <span class="drawer-title">文档分块详情</span>
-        <span class="drawer-subtitle">{{ documentTitle }}</span>
+        <div>
+          <span class="drawer-title">文档分块详情</span>
+          <span class="drawer-subtitle">{{ documentTitle }}</span>
+        </div>
+        <el-button link type="primary" @click="previewOriginal"><el-icon><Link /></el-icon>查看原文</el-button>
       </div>
     </template>
 
@@ -49,8 +70,11 @@ watch(() => props.visible, (val) => {
       >
         <div class="chunk-header">
           <span class="chunk-index">#{{ chunk.chunkIndex + 1 }}</span>
+          <el-tag :type="chunkType(chunk.metadataJson) === 'PARENT' ? 'warning' : 'info'" size="small">
+            {{ chunkType(chunk.metadataJson) === 'PARENT' ? '父块' : '子块' }}
+          </el-tag>
           <span class="chunk-section">{{ chunk.sectionPath }}</span>
-          <span class="chunk-page">第{{ chunk.pageNumber }}页</span>
+          <span v-if="chunk.pageNumber" class="chunk-page">第{{ chunk.pageNumber }}页</span>
           <el-tag
             :type="chunk.embeddingStatus === 'COMPLETED' ? 'success' : 'info'"
             size="small"

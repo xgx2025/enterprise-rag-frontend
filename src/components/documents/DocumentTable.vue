@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { DocumentItem } from '@/api/types'
 import StatusTag from '@/components/common/StatusTag.vue'
 import { showConfirm } from '@/components/common'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { ElMessage } from 'element-plus'
-import { View } from '@element-plus/icons-vue'
+import { View, Link, RefreshRight } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   documents: DocumentItem[]
@@ -35,14 +34,14 @@ function getSecurityType(level: number): 'success' | 'warning' | 'danger' | '' {
 
 async function handleDelete(doc: DocumentItem) {
   const confirmed = await showConfirm({
-    message: `确定删除文档「${doc.title}」吗？此操作不可撤销。`,
-    title: '删除确认',
+    message: `确定归档文档「${doc.title}」吗？归档后列表中不再显示，OSS 原文件暂时保留。`,
+    title: '归档确认',
     type: 'danger',
   })
   if (confirmed) {
     try {
       await kbStore.deleteDocument(doc.id)
-      ElMessage.success('删除成功')
+      ElMessage.success('文档已归档')
       emit('refresh')
     } catch (e: any) {
       ElMessage.error(e?.message || '删除失败')
@@ -60,13 +59,37 @@ async function handleToggleStatus(doc: DocumentItem) {
   })
   if (confirmed) {
     try {
-      // await updateDocumentStatus(doc.id, newStatus)
+      await kbStore.updateDocumentStatus(doc.id, newStatus)
       ElMessage.success(`${action}成功`)
       emit('refresh')
     } catch (e: any) {
       ElMessage.error(e?.message || `${action}失败`)
     }
   }
+}
+
+async function handleRetry(doc: DocumentItem) {
+  try {
+    await kbStore.retryDocument(doc.id)
+    ElMessage.success('已重新提交解析任务')
+    emit('refresh')
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || e?.message || '重试失败')
+  }
+}
+
+async function handlePreview(doc: DocumentItem) {
+  try {
+    await kbStore.openDocumentPreview(doc.id)
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || e?.message || '获取预览地址失败')
+  }
+}
+
+function formatFileSize(size?: number): string {
+  if (!size) return ''
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(0)} KB`
+  return `${(size / 1024 / 1024).toFixed(1)} MB`
 }
 </script>
 
@@ -83,7 +106,7 @@ async function handleToggleStatus(doc: DocumentItem) {
       <template #default="{ row }">
         <div class="doc-title-cell">
           <span class="doc-title">{{ row.title }}</span>
-          <span class="doc-version">{{ row.version }}</span>
+          <span class="doc-version">{{ row.version }} · {{ row.fileType }}<template v-if="row.fileSize"> · {{ formatFileSize(row.fileSize) }}</template></span>
         </div>
       </template>
     </el-table-column>
@@ -91,6 +114,13 @@ async function handleToggleStatus(doc: DocumentItem) {
     <el-table-column prop="status" label="状态" width="90">
       <template #default="{ row }">
         <StatusTag :status="row.status" />
+        <el-progress
+          v-if="row.status === 'PROCESSING'"
+          :percentage="row.processProgress || 0"
+          :stroke-width="3"
+          :show-text="false"
+          style="margin-top: 5px"
+        />
       </template>
     </el-table-column>
 
@@ -118,8 +148,11 @@ async function handleToggleStatus(doc: DocumentItem) {
           :type="row.parseStatus === 'COMPLETED' ? 'success' : row.parseStatus === 'FAILED' ? 'danger' : 'warning'"
           size="small"
         >
-          {{ row.parseStatus === 'COMPLETED' ? '已完成' : row.parseStatus === 'FAILED' ? '失败' : '处理中' }}
+          {{ row.parseStatus === 'COMPLETED' ? '已完成' : row.parseStatus === 'FAILED' ? '失败' : row.parseStatus === 'PENDING' ? '待处理' : '处理中' }}
         </el-tag>
+        <el-tooltip v-if="row.failureMessage" :content="row.failureMessage" placement="top">
+          <span class="failure-dot">!</span>
+        </el-tooltip>
       </template>
     </el-table-column>
 
@@ -140,18 +173,23 @@ async function handleToggleStatus(doc: DocumentItem) {
       </template>
     </el-table-column>
 
-    <el-table-column label="操作" width="180" fixed="right">
+    <el-table-column label="操作" width="260" fixed="right">
       <template #default="{ row }">
+        <el-button type="primary" link size="small" @click="handlePreview(row)">
+          <el-icon><Link /></el-icon>原文
+        </el-button>
         <el-button
           type="primary"
           link
           size="small"
+          :disabled="row.chunkCount === 0"
           @click="emit('view-chunks', row)"
         >
           <el-icon><View /></el-icon>
           查看分块
         </el-button>
         <el-button
+          v-if="row.status === 'READY' || row.status === 'ACTIVE' || row.status === 'EXPIRED'"
           type="warning"
           link
           size="small"
@@ -159,10 +197,14 @@ async function handleToggleStatus(doc: DocumentItem) {
         >
           {{ row.status === 'ACTIVE' ? '停用' : '启用' }}
         </el-button>
+        <el-button v-if="row.status === 'FAILED'" type="warning" link size="small" @click="handleRetry(row)">
+          <el-icon><RefreshRight /></el-icon>重试
+        </el-button>
         <el-button
           type="danger"
           link
           size="small"
+          :disabled="row.status === 'ACTIVE'"
           @click="handleDelete(row)"
         >
           删除
@@ -171,6 +213,13 @@ async function handleToggleStatus(doc: DocumentItem) {
     </el-table-column>
   </el-table>
 </template>
+
+<style scoped>
+.doc-title-cell { display: flex; flex-direction: column; gap: 3px; }
+.doc-title { color: #111827; font-weight: 550; }
+.doc-version { color: #9ca3af; font-size: 11px; }
+.failure-dot { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 4px; border-radius: 50%; background: #fee2e2; color: #dc2626; font-size: 11px; cursor: help; }
+</style>
 
 <style scoped>
 .doc-title-cell {

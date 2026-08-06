@@ -2,7 +2,7 @@
 // Document & chunk types
 // ============================================================
 
-export type DocumentStatus = 'DRAFT' | 'PROCESSING' | 'ACTIVE' | 'EXPIRED' | 'FAILED'
+export type DocumentStatus = 'DRAFT' | 'PROCESSING' | 'READY' | 'ACTIVE' | 'EXPIRED' | 'FAILED' | 'ARCHIVED'
 
 export interface DocumentItem {
   id: string
@@ -10,15 +10,23 @@ export interface DocumentItem {
   title: string
   fileName: string
   fileType: string
+  fileSize?: number
+  contentType?: string | null
   version: string
   status: DocumentStatus
   department: string
   securityLevel: number
+  allowedRoles?: string[]
+  authorityLevel?: number
   chunkCount: number
   parseStatus: string
   embeddingStatus: string
+  processProgress?: number
+  failureStage?: string | null
+  failureMessage?: string | null
   effectiveFrom: string
   effectiveTo: string | null
+  replacesDocumentId?: string | null
   createdBy: string
   createdAt: string
   updatedAt: string
@@ -49,8 +57,13 @@ export interface ChunkItem {
   chunkIndex: number
   content: string
   sectionPath: string
-  pageNumber: number
+  pageNumber: number | null
   tokenCount: number
   embeddingStatus: string
-  metadataJson: Record<string, unknown>
+  metadataJson: Record<string, unknown> | string
+}
+
+export interface ObjectAccessResponse {
+  url: string
+  expiresAt: string
 }

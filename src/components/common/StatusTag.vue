@@ -8,9 +8,11 @@ defineProps<{
 const statusConfig: Record<DocumentStatus, { text: string; type: '' | 'success' | 'warning' | 'info' | 'danger' }> = {
   DRAFT: { text: '草稿', type: 'info' },
   PROCESSING: { text: '处理中', type: 'warning' },
+  READY: { text: '待发布', type: '' },
   ACTIVE: { text: '已生效', type: 'success' },
   EXPIRED: { text: '已失效', type: 'info' },
   FAILED: { text: '失败', type: 'danger' },
+  ARCHIVED: { text: '已归档', type: 'info' },
 }
 </script>
 

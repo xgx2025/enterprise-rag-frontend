@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { usePagination } from '@/composables/usePagination'
 import { ErrorBlock, EmptyState } from '@/components/common'
 import { DOCUMENT_STATUS_OPTIONS, DEPARTMENTS } from '@/api/types'
 import type { DocumentQueryParams, DocumentItem } from '@/api/types'
-import { Upload, Search, FolderOpened } from '@element-plus/icons-vue'
+import { Upload, Search, FolderOpened, Setting } from '@element-plus/icons-vue'
 import DocumentTable from '@/components/documents/DocumentTable.vue'
 import DocumentUploadDialog from '@/components/documents/DocumentUploadDialog.vue'
 import DocumentChunkViewer from '@/components/documents/DocumentChunkViewer.vue'
+import KnowledgeBaseManager from '@/components/documents/KnowledgeBaseManager.vue'
 
 const kbStore = useKnowledgeBaseStore()
 const pagination = usePagination(10)
@@ -21,10 +22,12 @@ const filters = ref<DocumentQueryParams>({
 })
 
 const uploadVisible = ref(false)
+const kbManagerVisible = ref(false)
 const chunkDoc = ref<DocumentItem | null>(null)
 const chunkVisible = ref(false)
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let pollingTimer: ReturnType<typeof setInterval> | null = null
 
 async function loadDocuments() {
   await kbStore.fetchDocuments({
@@ -33,6 +36,17 @@ async function loadDocuments() {
     pageSize: pagination.state.pageSize,
   })
   pagination.setTotal(kbStore.docTotal)
+  syncPolling()
+}
+
+function syncPolling() {
+  const hasProcessing = kbStore.documents.some(doc => doc.status === 'PROCESSING')
+  if (hasProcessing && !pollingTimer) {
+    pollingTimer = setInterval(() => loadDocuments(), 3000)
+  } else if (!hasProcessing && pollingTimer) {
+    clearInterval(pollingTimer)
+    pollingTimer = null
+  }
 }
 
 function onFilterChange() {
@@ -50,6 +64,9 @@ watch(() => pagination.state.page, loadDocuments)
 watch(() => pagination.state.pageSize, loadDocuments)
 
 function onUploaded() { loadDocuments() }
+async function onKnowledgeBasesChanged() {
+  await loadDocuments()
+}
 function viewChunks(doc: DocumentItem) {
   chunkDoc.value = doc
   chunkVisible.value = true
@@ -58,6 +75,11 @@ function viewChunks(doc: DocumentItem) {
 onMounted(async () => {
   await kbStore.fetchKnowledgeBases()
   await loadDocuments()
+})
+
+onUnmounted(() => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  if (pollingTimer) clearInterval(pollingTimer)
 })
 
 const activeFilterCount = ref(0)
@@ -94,6 +116,10 @@ watch(
           <el-icon><Upload /></el-icon>
           上传文档
         </el-button>
+        <el-button size="large" @click="kbManagerVisible = true">
+          <el-icon><Setting /></el-icon>
+          管理知识库
+        </el-button>
 
         <div class="filter-group">
           <el-select
@@ -121,7 +147,7 @@ watch(
             size="default"
             style="width: 150px"
           >
-            <el-option v-for="kb in kbStore.knowledgeBases" :key="kb.id" :label="kb.name" :value="kb.id" />
+            <el-option v-for="kb in kbStore.activeKnowledgeBases" :key="kb.id" :label="kb.name" :value="kb.id" />
           </el-select>
         </div>
 
@@ -194,6 +220,7 @@ watch(
 
     <!-- Dialogs -->
     <DocumentUploadDialog v-model:visible="uploadVisible" @uploaded="onUploaded" />
+    <KnowledgeBaseManager v-model:visible="kbManagerVisible" @changed="onKnowledgeBasesChanged" />
     <DocumentChunkViewer
       v-model:visible="chunkVisible"
       :document-id="chunkDoc?.id ?? null"

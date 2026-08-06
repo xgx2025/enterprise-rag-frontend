@@ -46,7 +46,7 @@ const strategyOptions = [
       <span class="kb-bar-label">知识范围</span>
       <div class="kb-chips">
         <button
-          v-for="kb in kbStore.knowledgeBases"
+          v-for="kb in kbStore.activeKnowledgeBases"
           :key="kb.id"
           class="kb-chip"
           :class="{ active: selectedIds.includes(kb.id) }"
