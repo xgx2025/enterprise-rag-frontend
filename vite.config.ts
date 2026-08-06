@@ -16,6 +16,26 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/chat': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/documents': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/knowledge-bases': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/debug': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/evaluation': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
   resolve: {

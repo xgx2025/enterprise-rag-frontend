@@ -61,5 +61,5 @@ export function sendCode(email: string): Promise<void> {
 }
 
 export function getCurrentUser(): Promise<UserInfo> {
-  return request.get('/auth/me').then(res => res.data)
+  return request.get('/auth/profile').then(res => res.data)
 }
