@@ -136,6 +136,7 @@ const totalTime = () => {
 .debug-page {
   padding: 24px 28px;
   max-width: 1500px;
+  margin: 0 auto;
 }
 
 /* Hero */

@@ -234,6 +234,7 @@ watch(
   padding: 24px 28px;
   min-height: 100%;
   max-width: 1500px;
+  margin: 0 auto;
 }
 
 /* ── Hero ── */

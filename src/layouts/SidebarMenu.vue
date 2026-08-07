@@ -11,6 +11,7 @@ const emit = defineEmits<{
 
 const route = useRoute()
 const isCollapsed = ref(false)
+const isTransitioning = ref(false)
 
 const menuItems = [
   { path: '/qa', icon: ChatDotRound, label: '企业问答', desc: '智能知识检索' },
@@ -21,15 +22,26 @@ const menuItems = [
 
 const activeMenu = computed(() => {
   const path = route.path
-  for (const item of menuItems) {
-    if (path.startsWith(item.path)) return item.path
+  // Sort by path length descending so longer (more specific) paths match first
+  const sorted = [...menuItems].sort((a, b) => b.path.length - a.path.length)
+  for (const item of sorted) {
+    // Exact match or prefix match with '/' boundary (safe for nested routes)
+    if (path === item.path || path.startsWith(item.path + '/')) {
+      return item.path
+    }
   }
   return '/qa'
 })
 
 function toggleCollapse() {
+  // Guard against rapid clicks during the collapse/expand transition
+  if (isTransitioning.value) return
+  isTransitioning.value = true
   isCollapsed.value = !isCollapsed.value
   emit('collapse', isCollapsed.value)
+  setTimeout(() => {
+    isTransitioning.value = false
+  }, 350) // Slightly longer than the longest transition (sidebar width: 280ms)
 }
 </script>
 
@@ -77,9 +89,17 @@ function toggleCollapse() {
         text-color="#c7d2fe"
         active-text-color="#ffffff"
       >
-        <template v-for="item in menuItems" :key="item.path">
-          <!-- Single template — tooltip disabled when expanded so the
-               DOM stays stable and text can transition in/out smoothly -->
+        <!--
+          el-menu-item MUST be a direct child of el-menu so the router mode,
+          is-active tracking, and collapse behaviour all work correctly.
+          el-tooltip lives INSIDE the item — it only wraps the visual content,
+          not the entire menu-item component.
+        -->
+        <el-menu-item
+          v-for="item in menuItems"
+          :key="item.path"
+          :index="item.path"
+        >
           <el-tooltip
             :content="item.label"
             placement="right"
@@ -88,23 +108,21 @@ function toggleCollapse() {
             :offset="12"
             :disabled="!isCollapsed"
           >
-            <el-menu-item :index="item.path">
-              <div class="menu-item-content">
-                <el-icon :class="{ 'icon-active': activeMenu === item.path }">
-                  <component :is="item.icon" />
-                </el-icon>
-                <div class="menu-text">
-                  <span class="menu-label">{{ item.label }}</span>
-                  <span class="menu-desc">{{ item.desc }}</span>
-                </div>
+            <div class="menu-item-content">
+              <el-icon :class="{ 'icon-active': activeMenu === item.path }">
+                <component :is="item.icon" />
+              </el-icon>
+              <div class="menu-text">
+                <span class="menu-label">{{ item.label }}</span>
+                <span class="menu-desc">{{ item.desc }}</span>
               </div>
-              <div
-                class="active-indicator"
-                :class="{ 'indicator-visible': activeMenu === item.path }"
-              />
-            </el-menu-item>
+            </div>
           </el-tooltip>
-        </template>
+          <div
+            class="active-indicator"
+            :class="{ 'indicator-visible': activeMenu === item.path }"
+          />
+        </el-menu-item>
       </el-menu>
     </div>
 
@@ -160,7 +178,7 @@ function toggleCollapse() {
   padding: 18px 16px;
   min-height: 60px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  transition: padding 280ms var(--ease-out), justify-content 280ms var(--ease-out);
+  transition: padding 280ms var(--ease-out);
 }
 
 .brand-icon {
@@ -251,47 +269,30 @@ function toggleCollapse() {
     margin 280ms var(--ease-out),
     height 280ms var(--ease-out),
     border-radius 280ms var(--ease-out),
-    justify-content 280ms var(--ease-out),
     padding 280ms var(--ease-out);
 }
 
-/* ── Enter: staggered slide-in on expand ── */
-.sidebar:not(.collapsed) .nav-menu :deep(.el-menu-item) {
-  animation: menuItemEnter 220ms var(--ease-out) forwards;
-  opacity: 0;
-}
-/* Tight stagger — all items complete near the 280ms sidebar expansion */
-.sidebar:not(.collapsed) .nav-menu :deep(.el-menu-item):nth-child(1) { animation-delay: 50ms; }
-.sidebar:not(.collapsed) .nav-menu :deep(.el-menu-item):nth-child(2) { animation-delay: 95ms; }
-.sidebar:not(.collapsed) .nav-menu :deep(.el-menu-item):nth-child(3) { animation-delay: 140ms; }
-.sidebar:not(.collapsed) .nav-menu :deep(.el-menu-item):nth-child(4) { animation-delay: 185ms; }
-
-@keyframes menuItemEnter {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* ── Exit: text fades out before the sidebar clips it ── */
+/* ── Exit: text fades out AND shrinks to zero width before the sidebar clips it.
+   max-width is used (instead of width) because it transitions smoothly to/from 0,
+   removing the text from the layout so icons stay perfectly centered. ── */
 .menu-text {
   display: flex;
   flex-direction: column;
   gap: 1px;
   overflow: hidden;
+  max-width: 500px; /* large enough for any label + desc, just needs to be > real width */
+  min-width: 0;     /* allow flex child to shrink below content size */
   transition:
     opacity 150ms ease-out,
-    transform 150ms ease-out;
+    transform 150ms ease-out,
+    max-width 250ms var(--ease-out);
 }
 
 .sidebar.collapsed .menu-text {
   opacity: 0;
   transform: translateX(-6px);
   pointer-events: none;
+  max-width: 0;
 }
 
 /* Hover — gated behind fine-pointer (no false positives on touch) */
@@ -330,7 +331,10 @@ function toggleCollapse() {
   align-items: center;
   gap: 12px;
   width: 100%;
-  transition: width 280ms var(--ease-out), justify-content 280ms var(--ease-out);
+  transition:
+    width 280ms var(--ease-out),
+    justify-content 280ms var(--ease-out),
+    gap 250ms var(--ease-out);
 }
 
 /* Icon — font-size transitions smoothly between 19px↔22px */
@@ -404,8 +408,6 @@ function toggleCollapse() {
   margin: 3px 5px;
   height: 44px;
   border-radius: 12px;
-  /* Kill the enter animation so exit is transition-driven */
-  animation: none;
   opacity: 1;
 }
 
@@ -413,6 +415,7 @@ function toggleCollapse() {
 .sidebar.collapsed .menu-item-content {
   width: auto;
   justify-content: center;
+  gap: 0; /* eliminate gap so icon is perfectly centered */
 }
 
 /* Active pill replaces side bar in icon-only mode */
@@ -464,8 +467,7 @@ function toggleCollapse() {
   transition:
     color 200ms ease,
     background 200ms ease,
-    padding 280ms var(--ease-out),
-    justify-content 280ms var(--ease-out);
+    padding 280ms var(--ease-out);
   user-select: none;
 }
 
@@ -529,11 +531,6 @@ function toggleCollapse() {
     transition: none !important;
   }
 
-  .sidebar:not(.collapsed) .nav-menu :deep(.el-menu-item) {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
 
   .nav-menu :deep(.el-menu-item) {
     transition: background 200ms ease-out !important;
