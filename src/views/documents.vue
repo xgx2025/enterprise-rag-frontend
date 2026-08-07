@@ -236,11 +236,11 @@ watch(
   max-width: 1500px;
 }
 
-/* Hero */
+/* ── Hero ── */
 .page-hero {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 20px;
 }
 
@@ -274,7 +274,7 @@ watch(
   font-size: 24px;
   font-weight: 750;
   color: #111827;
-  font-family: var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
@@ -283,10 +283,10 @@ watch(
   font-weight: 500;
 }
 
-/* Toolbar card */
+/* ── Toolbar ── */
 .toolbar-card {
   background: #fff;
-  border: 1px solid #f3f4f6;
+  border: 1px solid #e5e7eb;
   border-radius: 14px;
   padding: 16px 20px;
   margin-bottom: 18px;
@@ -297,6 +297,11 @@ watch(
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* Push the search input to the right edge */
+.toolbar-main .search-input {
+  margin-left: auto;
 }
 
 .upload-btn {
@@ -318,7 +323,7 @@ watch(
 .toolbar-active-filters {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #e5e7eb;
 }
 
 .filter-badge {
@@ -340,7 +345,7 @@ watch(
   text-decoration: underline;
 }
 
-/* Empty card */
+/* ── Empty state ── */
 .empty-wrapper {
   display: flex;
   justify-content: center;
@@ -349,10 +354,15 @@ watch(
 
 .empty-card {
   text-align: center;
-  max-width: 400px;
+  max-width: 420px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 48px 32px;
 }
 
-.empty-card .empty-icon {
+/* Use :deep() so scoped styles penetrate the icon component */
+.empty-card :deep(.empty-icon) {
   font-size: 48px;
   color: #d1d5db;
   margin-bottom: 16px;
@@ -372,10 +382,10 @@ watch(
   line-height: 1.6;
 }
 
-/* Table card */
+/* ── Table & pagination ── */
 .table-card {
   background: #fff;
-  border: 1px solid #f3f4f6;
+  border: 1px solid #e5e7eb;
   border-radius: 14px;
   overflow: hidden;
 }
