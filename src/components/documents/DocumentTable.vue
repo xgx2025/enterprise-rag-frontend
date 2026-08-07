@@ -145,12 +145,16 @@ function formatFileSize(size?: number): string {
     <el-table-column label="解析状态" width="90">
       <template #default="{ row }">
         <el-tag
-          :type="row.parseStatus === 'COMPLETED' ? 'success' : row.parseStatus === 'FAILED' ? 'danger' : 'warning'"
+          :type="row.parseStatus === 'COMPLETED' ? 'success' : row.parseStatus === 'FAILED' ? 'danger' : row.parseStatus === 'PENDING' ? 'info' : 'warning'"
           size="small"
         >
           {{ row.parseStatus === 'COMPLETED' ? '已完成' : row.parseStatus === 'FAILED' ? '失败' : row.parseStatus === 'PENDING' ? '待处理' : '处理中' }}
         </el-tag>
-        <el-tooltip v-if="row.failureMessage" :content="row.failureMessage" placement="top">
+        <el-tooltip
+          v-if="row.failureMessage && row.failureStage === 'PARSE_AND_CHUNK'"
+          :content="row.failureMessage"
+          placement="top"
+        >
           <span class="failure-dot">!</span>
         </el-tooltip>
       </template>
@@ -159,11 +163,18 @@ function formatFileSize(size?: number): string {
     <el-table-column label="向量化" width="90">
       <template #default="{ row }">
         <el-tag
-          :type="row.embeddingStatus === 'COMPLETED' ? 'success' : row.embeddingStatus === 'PENDING' ? 'info' : 'warning'"
+          :type="row.embeddingStatus === 'COMPLETED' ? 'success' : row.embeddingStatus === 'FAILED' ? 'danger' : row.embeddingStatus === 'PENDING' ? 'info' : 'warning'"
           size="small"
         >
-          {{ row.embeddingStatus === 'COMPLETED' ? '已完成' : row.embeddingStatus === 'PENDING' ? '待处理' : '处理中' }}
+          {{ row.embeddingStatus === 'COMPLETED' ? '已完成' : row.embeddingStatus === 'FAILED' ? '失败' : row.embeddingStatus === 'PENDING' ? '待处理' : '处理中' }}
         </el-tag>
+        <el-tooltip
+          v-if="row.failureMessage && row.failureStage === 'EMBEDDING'"
+          :content="row.failureMessage"
+          placement="top"
+        >
+          <span class="failure-dot">!</span>
+        </el-tooltip>
       </template>
     </el-table-column>
 
