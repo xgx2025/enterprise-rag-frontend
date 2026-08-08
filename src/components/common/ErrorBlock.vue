@@ -38,7 +38,7 @@ const emit = defineEmits<{
 .error-message {
   margin: 0 0 16px;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-text-tertiary, #6b7280);
 }
 
 .error-retry {

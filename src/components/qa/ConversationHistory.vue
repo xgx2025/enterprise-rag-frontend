@@ -38,10 +38,11 @@ function formatDate(iso: string | undefined): string {
       </template>
 
       <div
-        v-for="conv in chatStore.conversations"
+        v-for="(conv, i) in chatStore.conversations"
         :key="conv.id"
         class="conv-item"
         :class="{ active: chatStore.currentConversation?.id === conv.id }"
+        :style="{ '--i': i }"
         @click="chatStore.loadConversation(conv.id)"
       >
         <el-icon class="conv-icon"><ChatDotRound /></el-icon>
@@ -65,7 +66,7 @@ function formatDate(iso: string | undefined): string {
 <style scoped>
 .conv-panel {
   padding: 16px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--color-border-light, #f3f4f6);
 }
 
 .conv-header {
@@ -78,7 +79,7 @@ function formatDate(iso: string | undefined): string {
 .panel-title {
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-tertiary, #6b7280);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -91,7 +92,7 @@ function formatDate(iso: string | undefined): string {
 .conv-empty {
   text-align: center;
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   padding: 20px 0;
 }
 
@@ -104,24 +105,32 @@ function formatDate(iso: string | undefined): string {
   cursor: pointer;
   transition: background 0.15s;
   position: relative;
+  /* Staggered entrance - capped so long lists don't drag */
+  animation: conv-in 300ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
+  animation-delay: calc(min(var(--i, 0), 12) * 28ms);
+}
+
+@keyframes conv-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .conv-item:hover {
-  background: #f5f7fa;
+  background: var(--color-bg-muted, #f5f7fa);
 }
 
 .conv-item.active {
-  background: #eef2ff;
+  background: var(--color-primary-bg, #eef2ff);
 }
 
 .conv-icon {
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   flex-shrink: 0;
   font-size: 15px;
 }
 
 .conv-item.active .conv-icon {
-  color: #6366f1;
+  color: var(--color-primary, #6366f1);
 }
 
 .conv-body {
@@ -133,7 +142,7 @@ function formatDate(iso: string | undefined): string {
 
 .conv-title {
   font-size: 13px;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -141,13 +150,13 @@ function formatDate(iso: string | undefined): string {
 
 .conv-date {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
 }
 
 .conv-delete {
   opacity: 0;
   flex-shrink: 0;
-  color: #9ca3af !important;
+  color: var(--color-text-muted, #9ca3af) !important;
 }
 
 .conv-item:hover .conv-delete {
@@ -155,6 +164,10 @@ function formatDate(iso: string | undefined): string {
 }
 
 .conv-delete:hover {
-  color: #ef4444 !important;
+  color: var(--color-danger, #ef4444) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .conv-item { animation: none; }
 }
 </style>

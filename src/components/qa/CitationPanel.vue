@@ -95,7 +95,7 @@ const emit = defineEmits<{
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--color-bg-white, #fff);
 }
 
 /* Empty */
@@ -112,7 +112,7 @@ const emit = defineEmits<{
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: #f9fafb;
+  background: var(--color-bg-subtle, #f9fafb);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -120,7 +120,7 @@ const emit = defineEmits<{
 
 .empty-text {
   font-size: 13.5px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   text-align: center;
   line-height: 1.7;
 }
@@ -131,7 +131,7 @@ const emit = defineEmits<{
   justify-content: space-between;
   align-items: center;
   padding: 18px 20px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--color-border-light, #f3f4f6);
   flex-shrink: 0;
 }
 
@@ -142,7 +142,7 @@ const emit = defineEmits<{
 }
 
 .cite-title-icon {
-  color: #6366f1;
+  color: var(--color-primary, #6366f1);
   font-size: 18px;
 }
 
@@ -150,7 +150,7 @@ const emit = defineEmits<{
   margin: 0;
   font-size: 15px;
   font-weight: 650;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
 }
 
 .cite-close {
@@ -163,14 +163,14 @@ const emit = defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   font-size: 18px;
   transition: all 0.2s ease;
 }
 
 .cite-close:hover {
-  background: #f5f7fa;
-  color: #374151;
+  background: var(--color-bg-muted, #f5f7fa);
+  color: var(--color-text-secondary, #374151);
 }
 
 /* Body */
@@ -183,7 +183,7 @@ const emit = defineEmits<{
 .cite-doc-title {
   font-size: 16px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
   margin-bottom: 20px;
   line-height: 1.4;
 }
@@ -194,7 +194,7 @@ const emit = defineEmits<{
   flex-direction: column;
   gap: 2px;
   margin-bottom: 16px;
-  background: #f9fafb;
+  background: var(--color-bg-subtle, #f9fafb);
   border-radius: 12px;
   padding: 4px;
 }
@@ -208,11 +208,11 @@ const emit = defineEmits<{
   transition: background 0.15s;
 }
 
-.cite-meta-item:hover { background: #fff; }
+.cite-meta-item:hover { background: var(--color-bg-white, #fff); }
 
 .cite-meta-item .el-icon {
   font-size: 16px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   flex-shrink: 0;
 }
 
@@ -224,14 +224,14 @@ const emit = defineEmits<{
 
 .meta-label {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .meta-value {
   font-size: 13.5px;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
   font-weight: 500;
 }
 
@@ -241,7 +241,7 @@ const emit = defineEmits<{
   justify-content: space-between;
   align-items: center;
   padding: 12px 14px;
-  background: #f9fafb;
+  background: var(--color-bg-subtle, #f9fafb);
   border-radius: 10px;
   margin-bottom: 16px;
 }
@@ -254,20 +254,20 @@ const emit = defineEmits<{
 
 .section-label {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
 }
 
 .section-value {
   font-size: 13px;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
   font-weight: 500;
 }
 
 .page-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #6366f1;
-  background: #eef2ff;
+  color: var(--color-primary, #6366f1);
+  background: var(--color-primary-bg, #eef2ff);
   padding: 4px 10px;
   border-radius: 6px;
 }
@@ -290,6 +290,6 @@ const emit = defineEmits<{
 .quote-content {
   font-size: 13.5px;
   line-height: 1.8;
-  color: #374151;
+  color: var(--color-text-secondary, #374151);
 }
 </style>

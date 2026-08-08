@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import type { ChatMessage } from '@/api/types'
 import AnswerStatusBadge from './AnswerStatusBadge.vue'
 import RetrievalFooter from './RetrievalFooter.vue'
-import { Cpu } from '@element-plus/icons-vue'
+import { renderMarkdown, highlightAll } from '@/utils/markdown'
+import { ElMessage } from 'element-plus'
+import { Cpu, CopyDocument, Refresh } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   message: ChatMessage
@@ -11,21 +13,61 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'cite': [sourceId: string]
+  'regenerate': []
 }>()
 
 const statsExpanded = ref(false)
+const contentRef = ref<HTMLElement | null>(null)
+
+const renderedContent = computed(() =>
+  renderMarkdown(props.message.content ?? '', !!props.message.isStreaming)
+)
+
+const isAssistant = computed(() => props.message.role === 'assistant')
+const showActions = computed(() =>
+  isAssistant.value && !props.message.isStreaming && !!props.message.content
+)
+
+// Highlight code blocks once streaming settles (or on mount for history).
+watch(
+  () => props.message.isStreaming,
+  (streaming) => {
+    if (!streaming) nextTick(() => highlightAll(contentRef.value))
+  },
+  { immediate: true },
+)
+
+// Click delegation for inline [S1] citation links produced by the renderer.
+function onContentClick(e: MouseEvent) {
+  const target = (e.target as HTMLElement).closest('.md-cite') as HTMLElement | null
+  if (target?.dataset.sourceId) {
+    e.preventDefault()
+    emit('cite', target.dataset.sourceId)
+  }
+}
+
+async function handleCopy() {
+  try {
+    await navigator.clipboard.writeText(props.message.content ?? '')
+    ElMessage.success('已复制到剪贴板')
+  } catch {
+    ElMessage.error('复制失败，请手动选择文本')
+  }
+}
 </script>
 
 <template>
   <div class="chat-message" :class="message.role">
     <!-- Assistant avatar -->
-    <div v-if="message.role === 'assistant'" class="msg-avatar">
+    <div v-if="isAssistant" class="msg-avatar">
       <Cpu />
     </div>
 
     <div class="message-body">
       <div class="message-bubble" :class="message.role">
-        <div class="message-content">{{ message.content }}</div>
+        <!-- User keeps plain text (pre-wrap); assistant renders markdown -->
+        <div v-if="isAssistant" class="message-content md-content" ref="contentRef" v-html="renderedContent" @click="onContentClick" />
+        <div v-else class="message-content">{{ message.content }}</div>
 
         <!-- Citations -->
         <div v-if="message.citations && message.citations.length > 0" class="message-citations">
@@ -45,6 +87,20 @@ const statsExpanded = ref(false)
           <span class="msg-time">{{ new Date(message.timestamp).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' }) }}</span>
         </div>
       </div>
+
+      <!-- Action toolbar (assistant, finished) -->
+      <transition name="actions-fade">
+        <div v-if="showActions" class="msg-actions">
+          <button class="action-chip" @click="handleCopy" title="复制回答">
+            <el-icon><CopyDocument /></el-icon>
+            <span>复制</span>
+          </button>
+          <button class="action-chip" @click="emit('regenerate')" title="重新生成">
+            <el-icon><Refresh /></el-icon>
+            <span>重新生成</span>
+          </button>
+        </div>
+      </transition>
 
       <!-- Retrieval stats -->
       <RetrievalFooter
@@ -107,22 +163,27 @@ const statsExpanded = ref(false)
 }
 
 .message-bubble.user {
-  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
-  color: #111827;
+  background: linear-gradient(135deg, var(--color-primary-bg, #eef2ff), var(--color-primary-lighter, #e0e7ff));
+  color: var(--color-text-primary, #111827);
   border-bottom-right-radius: 6px;
 }
 
 .message-bubble.assistant {
-  background: #fff;
-  color: #111827;
+  background: var(--color-bg-white, #fff);
+  color: var(--color-text-primary, #111827);
   border-bottom-left-radius: 6px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-  border: 1px solid #f3f4f6;
+  border: 1px solid var(--color-border-light, #f3f4f6);
 }
 
 .message-content {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Assistant content is rendered markdown - let .md-content own the flow */
+.message-bubble.assistant .message-content {
+  white-space: normal;
 }
 
 /* Citations */
@@ -132,7 +193,7 @@ const statsExpanded = ref(false)
   gap: 6px;
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--color-border-light, #f3f4f6);
 }
 
 .cite-badge {
@@ -142,8 +203,8 @@ const statsExpanded = ref(false)
   min-width: 28px;
   height: 24px;
   padding: 0 8px;
-  background: #eef2ff;
-  color: #6366f1;
+  background: var(--color-primary-bg, #eef2ff);
+  color: var(--color-primary, #6366f1);
   border: 1px solid transparent;
   border-radius: 8px;
   font-size: 12px;
@@ -154,9 +215,9 @@ const statsExpanded = ref(false)
 }
 
 .cite-badge:hover {
-  background: #6366f1;
+  background: var(--color-primary, #6366f1);
   color: #fff;
-  border-color: #6366f1;
+  border-color: var(--color-primary, #6366f1);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(99,102,241,0.3);
 }
@@ -172,7 +233,57 @@ const statsExpanded = ref(false)
 
 .msg-time {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   flex-shrink: 0;
+}
+
+/* ── Action toolbar ── */
+.msg-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  padding-left: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.chat-message.assistant:hover .msg-actions {
+  opacity: 1;
+}
+
+.action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted, #9ca3af);
+  font-size: 11.5px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-chip:hover {
+  background: var(--color-bg-muted, #f5f7fa);
+  color: var(--color-text-secondary, #374151);
+}
+
+.action-chip .el-icon {
+  font-size: 13px;
+}
+
+.actions-fade-enter-active { transition: opacity 0.2s ease; }
+.actions-fade-leave-active { transition: opacity 0.15s ease; }
+.actions-fade-enter-from,
+.actions-fade-leave-to { opacity: 0; }
+
+/* Keep actions visible to keyboard/touch users even without hover */
+@media (hover: none) {
+  .msg-actions { opacity: 1; }
 }
 </style>

@@ -1,0 +1,176 @@
+/* ============================================================
+   Rendered markdown prose inside chat bubbles
+   Scoped to .md-content so it never leaks into the rest of the UI
+   ============================================================ */
+
+.md-content {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text-primary, #111827);
+  word-break: break-word;
+}
+
+.md-content > *:first-child { margin-top: 0; }
+.md-content > *:last-child { margin-bottom: 0; }
+
+/* ── Paragraphs / spacing ── */
+.md-content p { margin: 0 0 10px; }
+.md-content p + p { margin-top: 10px; }
+
+/* ── Headings ── */
+.md-content h1,
+.md-content h2,
+.md-content h3,
+.md-content h4 {
+  margin: 16px 0 8px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--color-text-primary, #111827);
+}
+.md-content h1 { font-size: 18px; }
+.md-content h2 { font-size: 16px; }
+.md-content h3 { font-size: 15px; }
+.md-content h4 { font-size: 14px; }
+
+/* ── Inline code ── */
+.md-content code {
+  font-family: var(--font-mono, "SF Mono", monospace);
+  font-size: 0.88em;
+  padding: 2px 6px;
+  background: var(--color-bg-subtle, #f3f4f6);
+  border-radius: var(--radius-xs, 4px);
+  color: var(--color-primary-dark, #4f46e5);
+}
+
+/* ── Code blocks ── */
+.md-content pre {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  background: var(--color-bg-code, #f8f9fb);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.md-content pre code {
+  font-size: 12.5px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  color: inherit;
+  line-height: 1.6;
+}
+
+/* ── Lists ── */
+.md-content ul,
+.md-content ol {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+.md-content li { margin: 3px 0; }
+.md-content li > ul,
+.md-content li > ol { margin: 3px 0 0; }
+
+/* ── Blockquote ── */
+.md-content blockquote {
+  margin: 0 0 10px;
+  padding: 6px 14px;
+  border-left: 3px solid var(--color-primary-light, #818cf8);
+  background: var(--color-primary-bg, #eef2ff);
+  border-radius: 0 var(--radius-sm, 6px) var(--radius-sm, 6px) 0;
+  color: var(--color-text-secondary, #374151);
+}
+.md-content blockquote p:last-child { margin-bottom: 0; }
+
+/* ── Tables ── */
+.md-content table {
+  width: 100%;
+  margin: 0 0 12px;
+  border-collapse: collapse;
+  font-size: 13px;
+  overflow: hidden;
+  border-radius: var(--radius-sm, 6px);
+}
+.md-content th,
+.md-content td {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  text-align: left;
+}
+.md-content th {
+  background: var(--color-bg-subtle, #f9fafb);
+  font-weight: 600;
+  color: var(--color-text-secondary, #374151);
+}
+.md-content tr:nth-child(even) td {
+  background: var(--color-bg-subtle, #fafbfc);
+}
+
+/* ── Links ── */
+.md-content a {
+  color: var(--color-primary, #6366f1);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+.md-content a:hover { border-bottom-color: var(--color-primary, #6366f1); }
+
+/* ── Inline citation link (rendered from [S1] markers) ── */
+.md-content .md-cite {
+  display: inline-flex;
+  align-items: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  margin: 0 2px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary, #6366f1);
+  background: var(--color-primary-bg, #eef2ff);
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs, 4px);
+  cursor: pointer;
+  vertical-align: baseline;
+  transition: all 0.2s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  border-bottom: none;
+}
+.md-content .md-cite:hover {
+  color: #fff;
+  background: var(--color-primary, #6366f1);
+  border-color: var(--color-primary, #6366f1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+/* ── Streaming caret ── */
+.md-content .stream-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--color-primary, #6366f1);
+  border-radius: 1px;
+  animation: caret-blink 1s steps(2, start) infinite;
+}
+
+@keyframes caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── Horizontal rule ── */
+.md-content hr {
+  margin: 14px 0;
+  border: none;
+  border-top: 1px solid var(--color-border, #e5e7eb);
+}
+
+/* ── Reduced motion: stop the caret blinking ── */
+@media (prefers-reduced-motion: reduce) {
+  .md-content .stream-caret {
+    animation: none;
+    opacity: 0.6;
+  }
+}

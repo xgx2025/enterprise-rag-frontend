@@ -49,7 +49,7 @@ const emit = defineEmits<{
 <style scoped>
 .retrieval-footer {
   margin-top: 12px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--color-border-light, #f3f4f6);
   padding-top: 10px;
 }
 
@@ -58,13 +58,13 @@ const emit = defineEmits<{
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   cursor: pointer;
   user-select: none;
 }
 
 .retrieval-toggle:hover {
-  color: #6366f1;
+  color: var(--color-primary, #6366f1);
 }
 
 .toggle-arrow {
@@ -119,31 +119,31 @@ const emit = defineEmits<{
 }
 
 .stat-label {
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
 }
 
 .stat-value {
-  color: #374151;
+  color: var(--color-text-secondary, #374151);
   font-weight: 500;
 }
 
 .stat-value.warn {
-  color: #f59e0b;
+  color: var(--color-warning, #f59e0b);
 }
 
 .stat-value.highlight {
-  color: #6366f1;
+  color: var(--color-primary, #6366f1);
 }
 
 .stat-total {
   margin-top: 4px;
   padding-top: 6px;
-  border-top: 1px dashed #e5e7eb;
+  border-top: 1px dashed var(--color-border, #e5e7eb);
 }
 
 .stat-total .stat-label,
 .stat-total .stat-value {
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
 }
 </style>

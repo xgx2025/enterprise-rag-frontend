@@ -23,6 +23,15 @@
   --color-bg-sidebar: #1e1b4b;
   --color-bg-sidebar-hover: rgba(255,255,255,0.08);
   --color-bg-card: #ffffff;
+  --color-bg-muted: #f5f7fa;     /* app background / hover wash */
+  --color-bg-subtle: #f9fafb;    /* inputs, meta blocks, table headers */
+  --color-bg-stripe: #fafbfc;    /* zebra rows, center panel */
+  --color-bg-code: #f8f9fb;      /* code blocks */
+
+  /* ── Borders ── */
+  --color-border: #e5e7eb;        /* default 1px borders */
+  --color-border-light: #f3f4f6;  /* hairline dividers */
+  --color-border-strong: #d1d5db; /* scrollbar, icons, separators */
 
   /* ── Text ── */
   --color-text-primary: #111827;

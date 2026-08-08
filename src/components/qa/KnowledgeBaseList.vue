@@ -85,8 +85,8 @@ const strategyOptions = [
 <style scoped>
 .kb-bar {
   padding: 12px 24px;
-  background: #fff;
-  border-bottom: 1px solid #f3f4f6;
+  background: var(--color-bg-white, #fff);
+  border-bottom: 1px solid var(--color-border-light, #f3f4f6);
 }
 
 .kb-bar-row {
@@ -99,7 +99,7 @@ const strategyOptions = [
 .kb-bar-label {
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-secondary, #374151);
   flex-shrink: 0;
 }
 
@@ -114,19 +114,19 @@ const strategyOptions = [
   align-items: center;
   gap: 5px;
   padding: 5px 12px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--color-border, #e5e7eb);
   border-radius: 20px;
-  background: #fff;
+  background: var(--color-bg-white, #fff);
   cursor: pointer;
   font-family: inherit;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-tertiary, #6b7280);
   transition: all 0.2s ease;
 }
 
 .kb-chip:hover {
-  border-color: #c7d2fe;
-  background: #f5f7ff;
+  border-color: var(--color-primary-lighter, #c7d2fe);
+  background: var(--color-primary-bg, #eef2ff);
 }
 
 .kb-chip.active {
@@ -152,8 +152,8 @@ const strategyOptions = [
   font-size: 10.5px;
   padding: 1px 6px;
   border-radius: 8px;
-  background: #f3f4f6;
-  color: #9ca3af;
+  background: var(--color-border-light, #f3f4f6);
+  color: var(--color-text-muted, #9ca3af);
   font-weight: 500;
 }
 
@@ -166,7 +166,7 @@ const strategyOptions = [
 .strategy-label {
   margin-left: 8px;
   padding-left: 12px;
-  border-left: 1px solid #e5e7eb;
+  border-left: 1px solid var(--color-border, #e5e7eb);
 }
 
 .strategy-select {
@@ -179,7 +179,7 @@ const strategyOptions = [
   font-size: 12.5px;
   color: #d97706;
   padding: 6px 12px;
-  background: #fffbeb;
+  background: var(--color-warning-bg, #fffbeb);
   border: 1px solid #fde68a;
   border-radius: 8px;
   line-height: 1.5;
