@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
-import { ElMessage } from 'element-plus'
 import { Link } from '@element-plus/icons-vue'
 
 const props = defineProps<{
@@ -12,6 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
+  'preview-original': []
 }>()
 
 const kbStore = useKnowledgeBaseStore()
@@ -23,13 +23,8 @@ function chunkType(metadata: Record<string, unknown> | string): string {
   return String(metadata?.chunkType || 'CHILD')
 }
 
-async function previewOriginal() {
-  if (!props.documentId) return
-  try {
-    await kbStore.openDocumentPreview(props.documentId)
-  } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || e?.message || '获取预览地址失败')
-  }
+function previewOriginal() {
+  emit('preview-original')
 }
 
 watch(() => props.visible, (val) => {

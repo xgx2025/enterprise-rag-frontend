@@ -12,6 +12,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+  'preview': [doc: DocumentItem]
   'view-chunks': [doc: DocumentItem]
   'refresh': []
 }>()
@@ -78,12 +79,8 @@ async function handleRetry(doc: DocumentItem) {
   }
 }
 
-async function handlePreview(doc: DocumentItem) {
-  try {
-    await kbStore.openDocumentPreview(doc.id)
-  } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || e?.message || '获取预览地址失败')
-  }
+function handlePreview(doc: DocumentItem) {
+  emit('preview', doc)
 }
 
 function formatFileSize(size?: number): string {
@@ -226,13 +223,6 @@ function formatFileSize(size?: number): string {
 </template>
 
 <style scoped>
-.doc-title-cell { display: flex; flex-direction: column; gap: 3px; }
-.doc-title { color: #111827; font-weight: 550; }
-.doc-version { color: #9ca3af; font-size: 11px; }
-.failure-dot { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 4px; border-radius: 50%; background: #fee2e2; color: #dc2626; font-size: 11px; cursor: help; }
-</style>
-
-<style scoped>
 .doc-title-cell {
   display: flex;
   align-items: center;
@@ -241,21 +231,35 @@ function formatFileSize(size?: number): string {
 
 .doc-title {
   font-weight: 500;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
 }
 
 .doc-version {
   font-size: 12px;
-  color: #6366f1;
-  background: #eef2ff;
+  color: var(--color-primary, #6366f1);
+  background: var(--color-primary-bg, #eef2ff);
   padding: 1px 6px;
   border-radius: 4px;
   flex-shrink: 0;
 }
 
+.failure-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: var(--color-danger-bg, #fee2e2);
+  color: #dc2626;
+  font-size: 11px;
+  cursor: help;
+}
+
 :deep(.el-table th.el-table__cell) {
-  background: #f9fafb;
-  color: #374151;
+  background: var(--color-bg-subtle, #f9fafb);
+  color: var(--color-text-secondary, #374151);
   font-weight: 600;
   font-size: 13px;
 }

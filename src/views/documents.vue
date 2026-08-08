@@ -9,6 +9,7 @@ import { Upload, Search, FolderOpened, Setting } from '@element-plus/icons-vue'
 import DocumentTable from '@/components/documents/DocumentTable.vue'
 import DocumentUploadDialog from '@/components/documents/DocumentUploadDialog.vue'
 import DocumentChunkViewer from '@/components/documents/DocumentChunkViewer.vue'
+import DocumentPreviewDialog from '@/components/documents/DocumentPreviewDialog.vue'
 import KnowledgeBaseManager from '@/components/documents/KnowledgeBaseManager.vue'
 
 const kbStore = useKnowledgeBaseStore()
@@ -25,6 +26,8 @@ const uploadVisible = ref(false)
 const kbManagerVisible = ref(false)
 const chunkDoc = ref<DocumentItem | null>(null)
 const chunkVisible = ref(false)
+const previewDoc = ref<DocumentItem | null>(null)
+const previewVisible = ref(false)
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let pollingTimer: ReturnType<typeof setInterval> | null = null
@@ -70,6 +73,13 @@ async function onKnowledgeBasesChanged() {
 function viewChunks(doc: DocumentItem) {
   chunkDoc.value = doc
   chunkVisible.value = true
+}
+function openPreview(doc: DocumentItem) {
+  previewDoc.value = doc
+  previewVisible.value = true
+}
+function openPreviewFromChunks() {
+  if (chunkDoc.value) openPreview(chunkDoc.value)
 }
 
 onMounted(async () => {
@@ -205,6 +215,7 @@ watch(
         <DocumentTable
           :documents="kbStore.documents"
           :loading="kbStore.docLoading"
+          @preview="openPreview"
           @view-chunks="viewChunks"
           @refresh="loadDocuments"
         />
@@ -229,7 +240,9 @@ watch(
       v-model:visible="chunkVisible"
       :document-id="chunkDoc?.id ?? null"
       :document-title="chunkDoc?.title ?? ''"
+      @preview-original="openPreviewFromChunks"
     />
+    <DocumentPreviewDialog v-model:visible="previewVisible" :doc="previewDoc" />
   </div>
 </template>
 
@@ -253,14 +266,14 @@ watch(
   margin: 0 0 4px;
   font-size: 22px;
   font-weight: 750;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
   letter-spacing: -0.01em;
 }
 
 .hero-sub {
   margin: 0;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-text-tertiary, #6b7280);
 }
 
 .hero-stats {
@@ -278,20 +291,20 @@ watch(
 .stat-num {
   font-size: 24px;
   font-weight: 750;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
   font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   font-weight: 500;
 }
 
 /* ── Toolbar ── */
 .toolbar-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-bg-white, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 14px;
   padding: 16px 20px;
   margin-bottom: 18px;
@@ -322,7 +335,7 @@ watch(
 
 .search-input :deep(.el-input__wrapper) {
   border-radius: 10px;
-  background: #f9fafb;
+  background: var(--color-bg-subtle, #f9fafb);
 }
 
 .toolbar-active-filters {
@@ -336,7 +349,7 @@ watch(
 .filter-bar-inner {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-border, #e5e7eb);
   min-height: 0;
 }
 
@@ -361,13 +374,13 @@ watch(
 
 .filter-badge {
   font-size: 12.5px;
-  color: #6b7280;
+  color: var(--color-text-tertiary, #6b7280);
 }
 
 .filter-clear {
   border: none;
   background: none;
-  color: #6366f1;
+  color: var(--color-primary, #6366f1);
   cursor: pointer;
   font-size: 12.5px;
   font-weight: 500;
@@ -388,8 +401,8 @@ watch(
 .empty-card {
   text-align: center;
   max-width: 420px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-bg-white, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 14px;
   padding: 48px 32px;
   transform-origin: center;
@@ -399,7 +412,7 @@ watch(
 /* Use :deep() so scoped styles penetrate the icon component */
 .empty-card :deep(.empty-icon) {
   font-size: 48px;
-  color: #d1d5db;
+  color: var(--color-border-strong, #d1d5db);
   margin-bottom: 16px;
   animation: empty-fade-up 450ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
   animation-delay: 60ms;
@@ -409,7 +422,7 @@ watch(
   margin: 0 0 8px;
   font-size: 18px;
   font-weight: 650;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
   animation: empty-fade-up 400ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
   animation-delay: 130ms;
 }
@@ -417,7 +430,7 @@ watch(
 .empty-card p {
   margin: 0 0 20px;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-text-tertiary, #6b7280);
   line-height: 1.6;
   animation: empty-fade-up 400ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
   animation-delay: 200ms;
@@ -452,8 +465,8 @@ watch(
 
 /* ── Table & pagination ── */
 .table-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-bg-white, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 14px;
   overflow: hidden;
 }
