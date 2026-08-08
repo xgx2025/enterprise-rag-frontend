@@ -41,7 +41,7 @@ function toggleCollapse() {
   emit('collapse', isCollapsed.value)
   setTimeout(() => {
     isTransitioning.value = false
-  }, 350) // Slightly longer than the longest transition (sidebar width: 280ms)
+  }, 400) // Covers the longest enter animation (text: 60ms delay + 280ms = 340ms)
 }
 </script>
 
@@ -82,7 +82,6 @@ function toggleCollapse() {
       >导航菜单</div>
       <el-menu
         :default-active="activeMenu"
-        :collapse="isCollapsed"
         router
         class="nav-menu"
         background-color="transparent"
@@ -90,8 +89,15 @@ function toggleCollapse() {
         active-text-color="#ffffff"
       >
         <!--
-          el-menu-item MUST be a direct child of el-menu so the router mode,
-          is-active tracking, and collapse behaviour all work correctly.
+          el-menu-item MUST be a direct child of el-menu so router mode and
+          is-active tracking work correctly.
+          We deliberately do NOT bind el-menu's :collapse prop. Its built-in
+          collapse-transition wraps the item content and animates width on a
+          separate timeline, clipping the text until the very end — that is
+          what made the title "pop in" after the icon on expand. Instead,
+          every collapsed visual (icon centering, text hiding, tooltip) is
+          driven by the .sidebar.collapsed class + our own el-tooltip below,
+          so the whole sidebar animates on one synchronized timeline.
           el-tooltip lives INSIDE the item — it only wraps the visual content,
           not the entire menu-item component.
         -->
@@ -229,11 +235,12 @@ function toggleCollapse() {
   white-space: nowrap;
   max-height: 40px;
   overflow: hidden;
+  /* ENTER (expand) - see .menu-text for the asymmetric enter/leave rationale */
   transition:
-    opacity 150ms var(--ease-out),
-    transform 150ms var(--ease-out),
-    max-height 250ms var(--ease-out),
-    padding 250ms var(--ease-out);
+    opacity 280ms var(--ease-out) 80ms,
+    transform 280ms var(--ease-out) 80ms,
+    max-height 320ms var(--ease-out) 80ms,
+    padding 320ms var(--ease-out) 80ms;
 }
 
 .nav-section-label.label-hidden {
@@ -242,6 +249,11 @@ function toggleCollapse() {
   max-height: 0;
   padding-top: 0;
   padding-bottom: 0;
+  transition:
+    opacity 140ms ease-out,
+    transform 140ms ease-out,
+    max-height 180ms ease-out,
+    padding 180ms ease-out;
 }
 
 .nav-menu {
@@ -282,17 +294,28 @@ function toggleCollapse() {
   overflow: hidden;
   max-width: 500px; /* large enough for any label + desc, just needs to be > real width */
   min-width: 0;     /* allow flex child to shrink below content size */
+  /* ENTER (expand): the transition on the expanded (target) state drives the
+     expand animation. It starts 60ms after the sidebar begins widening (so
+     there is room for the text) and eases in over 280ms in lockstep with the
+     sidebar width - no sudden pop. */
   transition:
-    opacity 150ms ease-out,
-    transform 150ms ease-out,
-    max-width 250ms var(--ease-out);
+    opacity 280ms var(--ease-out) 60ms,
+    transform 280ms var(--ease-out) 60ms,
+    max-width 320ms var(--ease-out) 60ms;
 }
 
 .sidebar.collapsed .menu-text {
   opacity: 0;
-  transform: translateX(-6px);
+  transform: translateX(-8px);
   pointer-events: none;
   max-width: 0;
+  /* LEAVE (collapse): the transition on the collapsed (target) state drives
+     the collapse animation. Fast and immediate so the text is gone well
+     before the shrinking sidebar can clip it. */
+  transition:
+    opacity 140ms ease-out,
+    transform 140ms ease-out,
+    max-width 180ms ease-out;
 }
 
 /* Hover — gated behind fine-pointer (no false positives on touch) */
@@ -499,19 +522,19 @@ function toggleCollapse() {
 /* Enter: delayed so the sidebar has already started expanding */
 .brand-fade-enter-active {
   transition:
-    opacity 200ms var(--ease-out) 80ms,
-    transform 200ms var(--ease-out) 80ms;
+    opacity 280ms var(--ease-out) 100ms,
+    transform 280ms var(--ease-out) 100ms;
 }
 /* Leave: fast — text vanishes before the shrinking sidebar clips it */
 .brand-fade-leave-active {
   transition:
-    opacity 120ms ease-out,
-    transform 120ms ease-out;
+    opacity 130ms ease-out,
+    transform 130ms ease-out;
 }
 .brand-fade-enter-from,
 .brand-fade-leave-to {
   opacity: 0;
-  transform: translateX(-4px);
+  transform: translateX(-6px);
 }
 
 /* ═══════════════════════════════════════════════════════
