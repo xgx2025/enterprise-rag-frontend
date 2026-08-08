@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps<{
   label: string
@@ -9,25 +9,91 @@ const props = defineProps<{
   icon?: string
 }>()
 
-const displayValue = ref('0')
+const displayValue = ref('')
+const barPercent = ref(0) // 0–100, animated in lockstep with the number
 
-function formatTarget(val: string | number): string {
-  if (typeof val === 'number') {
-    if (val < 1 && val > 0) return (val * 100).toFixed(0) + '%'
-    if (val > 1000) return val.toLocaleString()
-    return String(Math.round(val))
-  }
-  return val
+let rafId: number | null = null
+let currentNum = 0 // last displayed numeric value, so re-runs retarget smoothly
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
 }
 
-onMounted(() => {
-  const target = formatTarget(props.value)
-  // Simple count-up animation for numbers
-  if (typeof props.value === 'number') {
-    displayValue.value = target
-  } else {
-    displayValue.value = target
+// Decompose the prop into a countable number + a renderer + the bar's target %.
+// Percentage metrics (0..1) count up as their 0..100 form, matching how the bar
+// already sized them (value * 100). Non-numbers render literally (no count-up).
+interface Resolved {
+  num: number | null
+  render: (n: number) => string
+  bar: number
+}
+
+function resolve(val: string | number): Resolved {
+  if (typeof val !== 'number') {
+    return { num: null, render: () => String(val), bar: 100 }
   }
+  if (val < 1 && val > 0) {
+    return { num: val * 100, render: (n) => `${Math.round(n)}%`, bar: val * 100 }
+  }
+  if (val > 1000) {
+    return { num: val, render: (n) => Math.round(n).toLocaleString(), bar: 100 }
+  }
+  return { num: val, render: (n) => String(Math.round(n)), bar: val <= 1 ? val * 100 : 100 }
+}
+
+function countTo(target: number, render: (n: number) => string, barTarget: number) {
+  const fromNum = currentNum
+  const fromBar = barPercent.value
+  // Render the starting frame synchronously to avoid an empty flash.
+  displayValue.value = render(fromNum)
+
+  if (prefersReducedMotion()) {
+    currentNum = target
+    barPercent.value = barTarget
+    displayValue.value = render(target)
+    return
+  }
+
+  const duration = 700 // matches the bar's intended reveal beat
+  const start = performance.now()
+  if (rafId != null) cancelAnimationFrame(rafId)
+
+  const tick = (now: number) => {
+    const t = Math.min((now - start) / duration, 1)
+    const eased = 1 - Math.pow(1 - t, 3) // ease-out cubic
+    currentNum = fromNum + (target - fromNum) * eased
+    barPercent.value = fromBar + (barTarget - fromBar) * eased
+    displayValue.value = render(currentNum)
+    if (t < 1) {
+      rafId = requestAnimationFrame(tick)
+    } else {
+      rafId = null
+    }
+  }
+  rafId = requestAnimationFrame(tick)
+}
+
+function applyValue(val: string | number) {
+  const { num, render, bar } = resolve(val)
+  if (num === null) {
+    displayValue.value = render(0)
+    barPercent.value = bar
+    return
+  }
+  countTo(num, render, bar)
+}
+
+onMounted(() => applyValue(props.value))
+// The previous implementation only set the value onMounted, so a re-run that
+// swapped the metrics object left the number stale while the bar updated.
+// Watching the prop keeps them in sync and re-animates the transition.
+watch(() => props.value, (val) => applyValue(val))
+
+onUnmounted(() => {
+  if (rafId != null) cancelAnimationFrame(rafId)
 })
 </script>
 
@@ -48,7 +114,7 @@ onMounted(() => {
       <div
         class="metric-bar-fill"
         :style="{
-          width: typeof value === 'number' && value <= 1 ? (value * 100) + '%' : '100%',
+          width: barPercent + '%',
           background: delta !== undefined && delta >= 0
             ? 'linear-gradient(90deg, #818cf8, #6366f1)'
             : 'linear-gradient(90deg, #e5e7eb, #d1d5db)'
@@ -150,6 +216,7 @@ onMounted(() => {
 .metric-bar-fill {
   height: 100%;
   border-radius: 2px;
-  transition: width 0.8s var(--ease-out, cubic-bezier(0.16,1,0.3,1));
+  /* Width is driven by the rAF count-up in lockstep with the number,
+     so no CSS transition here (it would double-ease each frame). */
 }
 </style>

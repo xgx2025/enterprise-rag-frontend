@@ -73,7 +73,7 @@ const totalTime = () => {
           <span>调用链路耗时</span>
           <span class="timing-total">{{ formatMs(totalTime()) }}</span>
         </div>
-        <div class="timing-flow">
+        <div class="timing-flow" :key="debugStore.result?.traceId">
           <span
             v-for="(ms, stage) in debugStore.result.timing"
             :key="stage"
@@ -251,9 +251,28 @@ const totalTime = () => {
   font-size: 12px;
   transition: all 0.15s ease;
   cursor: default;
+  /* Staggered entrance - narrates the dense→rerank pipeline order on each
+     search. `backwards` holds the start state during each chip's delay. */
+  animation: timing-chip-in 250ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
+}
+
+.timing-chip:nth-child(1) { animation-delay: 0ms; }
+.timing-chip:nth-child(2) { animation-delay: 45ms; }
+.timing-chip:nth-child(3) { animation-delay: 90ms; }
+.timing-chip:nth-child(4) { animation-delay: 135ms; }
+.timing-chip:nth-child(5) { animation-delay: 180ms; }
+.timing-chip:nth-child(n + 6) { animation-delay: 180ms; }
+
+@keyframes timing-chip-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .timing-chip:hover { background: #fff; border-color: #d1d5db; }
+
+@media (prefers-reduced-motion: reduce) {
+  .timing-chip { animation: none; }
+}
 
 .tc-stage { color: #6b7280; font-size: 11px; }
 .tc-ms { color: #374151; font-weight: 600; font-family: var(--font-mono, monospace); }

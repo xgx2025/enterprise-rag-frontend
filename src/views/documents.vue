@@ -162,12 +162,16 @@ watch(
         />
       </div>
 
-      <div v-if="activeFilterCount > 0" class="toolbar-active-filters">
-        <span class="filter-badge">
-          已应用 {{ activeFilterCount }} 个筛选
-          <button class="filter-clear" @click="filters.status = undefined; filters.department = undefined; filters.knowledgeBaseId = undefined; filters.keyword = undefined">清除全部</button>
-        </span>
-      </div>
+      <transition name="filter-bar">
+        <div v-if="activeFilterCount > 0" class="toolbar-active-filters">
+          <div class="filter-bar-inner">
+            <span class="filter-badge">
+              已应用 {{ activeFilterCount }} 个筛选
+              <button class="filter-clear" @click="filters.status = undefined; filters.department = undefined; filters.knowledgeBaseId = undefined; filters.keyword = undefined">清除全部</button>
+            </span>
+          </div>
+        </div>
+      </transition>
     </div>
 
     <!-- Error -->
@@ -322,9 +326,37 @@ watch(
 }
 
 .toolbar-active-filters {
+  /* Grid-row accordion so the bar grows/shrinks smoothly; the border +
+     padding live on the inner and are clipped while collapsed. */
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+}
+
+.filter-bar-inner {
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid #e5e7eb;
+  min-height: 0;
+}
+
+.filter-bar-enter-active,
+.filter-bar-leave-active {
+  transition: grid-template-rows 220ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+              opacity 180ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.filter-bar-enter-from,
+.filter-bar-leave-to {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-bar-enter-active,
+  .filter-bar-leave-active {
+    transition: none;
+  }
 }
 
 .filter-badge {
@@ -360,6 +392,8 @@ watch(
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   padding: 48px 32px;
+  transform-origin: center;
+  animation: empty-fade 350ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
 }
 
 /* Use :deep() so scoped styles penetrate the icon component */
@@ -367,6 +401,8 @@ watch(
   font-size: 48px;
   color: #d1d5db;
   margin-bottom: 16px;
+  animation: empty-fade-up 450ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
+  animation-delay: 60ms;
 }
 
 .empty-card h3 {
@@ -374,6 +410,8 @@ watch(
   font-size: 18px;
   font-weight: 650;
   color: #111827;
+  animation: empty-fade-up 400ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
+  animation-delay: 130ms;
 }
 
 .empty-card p {
@@ -381,6 +419,35 @@ watch(
   font-size: 14px;
   color: #6b7280;
   line-height: 1.6;
+  animation: empty-fade-up 400ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
+  animation-delay: 200ms;
+}
+
+.empty-card :deep(.el-button) {
+  animation: empty-fade-up 400ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) backwards;
+  animation-delay: 270ms;
+}
+
+/* First-run empty state: a rare, high-emotion moment, so a gentle staggered
+   entrance earns its place (the delight budget). */
+@keyframes empty-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes empty-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empty-card,
+  .empty-card :deep(.empty-icon),
+  .empty-card h3,
+  .empty-card p,
+  .empty-card :deep(.el-button) {
+    animation: none;
+  }
 }
 
 /* ── Table & pagination ── */

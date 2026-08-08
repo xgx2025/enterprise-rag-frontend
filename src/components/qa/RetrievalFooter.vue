@@ -17,28 +17,32 @@ const emit = defineEmits<{
       <span>{{ expanded ? '收起检索过程' : '查看检索过程' }}</span>
       <span class="toggle-arrow" :class="{ expanded }">▾</span>
     </div>
-    <div class="retrieval-detail" v-show="expanded">
-      <div class="stat-row">
-        <span class="stat-label">已检索片段</span>
-        <span class="stat-value">{{ stats.totalRetrieved }}</span>
+    <transition name="expand">
+      <div v-if="expanded" class="retrieval-detail">
+        <div class="retrieval-detail-inner">
+          <div class="stat-row">
+            <span class="stat-label">已检索片段</span>
+            <span class="stat-value">{{ stats.totalRetrieved }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">权限过滤</span>
+            <span class="stat-value warn">{{ stats.permissionFiltered }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">融合候选</span>
+            <span class="stat-value">{{ stats.fusionCandidates }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">重排保留</span>
+            <span class="stat-value highlight">{{ stats.rerankKept }}</span>
+          </div>
+          <div class="stat-row stat-total">
+            <span class="stat-label">总耗时</span>
+            <span class="stat-value">{{ (stats.totalTimeMs / 1000).toFixed(1) }} 秒</span>
+          </div>
+        </div>
       </div>
-      <div class="stat-row">
-        <span class="stat-label">权限过滤</span>
-        <span class="stat-value warn">{{ stats.permissionFiltered }}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-label">融合候选</span>
-        <span class="stat-value">{{ stats.fusionCandidates }}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-label">重排保留</span>
-        <span class="stat-value highlight">{{ stats.rerankKept }}</span>
-      </div>
-      <div class="stat-row stat-total">
-        <span class="stat-label">总耗时</span>
-        <span class="stat-value">{{ (stats.totalTimeMs / 1000).toFixed(1) }} 秒</span>
-      </div>
-    </div>
+    </transition>
   </div>
 </template>
 
@@ -73,10 +77,38 @@ const emit = defineEmits<{
 }
 
 .retrieval-detail {
+  /* Grid-row accordion: the outer track animates 0fr↔1fr so the section
+     grows/shrinks smoothly; overflow:hidden clips the inner while collapsed. */
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+}
+
+.retrieval-detail-inner {
   margin-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-height: 0; /* let the grid item collapse with its track */
+}
+
+.expand-enter-active,
+.expand-leave-active {
+  transition: grid-template-rows 250ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+              opacity 180ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expand-enter-active,
+  .expand-leave-active {
+    transition: none;
+  }
 }
 
 .stat-row {
