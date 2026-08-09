@@ -54,14 +54,14 @@ const emit = defineEmits<{
   margin: 0 0 8px;
   font-size: 17px;
   font-weight: 650;
-  color: #374151;
+  color: var(--color-text-secondary, #374151);
   letter-spacing: -0.01em;
 }
 
 .empty-desc {
   margin: 0 0 24px;
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   max-width: 380px;
   line-height: 1.65;
 }

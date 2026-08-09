@@ -3,7 +3,7 @@ import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
-import { DEPARTMENTS, SECURITY_LEVELS } from '@/api/types'
+import { DEPARTMENTS, SECURITY_LEVELS, DOCUMENT_ROLES, AUTHORITY_LEVELS } from '@/api/types'
 import type { UploadFile, UploadRawFile } from 'element-plus'
 
 const props = defineProps<{
@@ -26,6 +26,9 @@ const form = reactive({
   securityLevel: '1',
   version: 'V1.0',
   effectiveFrom: new Date().toISOString().split('T')[0],
+  effectiveTo: '',
+  allowedRoles: ['EMPLOYEE'],
+  authorityLevel: '1',
 })
 
 const fileList = ref<UploadFile[]>([])
@@ -37,7 +40,6 @@ const rules = {
 }
 
 function beforeUpload(file: UploadRawFile) {
-  const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/markdown', 'text/plain', 'text/html']
   const ext = file.name.split('.').pop()?.toLowerCase()
   const allowedExts = ['pdf', 'docx', 'md', 'txt', 'html']
 
@@ -53,6 +55,16 @@ function beforeUpload(file: UploadRawFile) {
   }
 
   return true
+}
+
+function onFileChange(file: UploadFile) {
+  if (!form.title && file.name) {
+    form.title = file.name.replace(/\.[^.]+$/, '')
+  }
+}
+
+function disableEffectiveDate(date: Date): boolean {
+  return !!form.effectiveFrom && date < new Date(`${form.effectiveFrom}T00:00:00`)
 }
 
 async function handleSubmit() {
@@ -78,14 +90,17 @@ async function handleSubmit() {
     fd.append('department', form.department)
     fd.append('securityLevel', form.securityLevel)
     fd.append('version', form.version)
-    fd.append('effectiveFrom', form.effectiveFrom || '')
+    if (form.effectiveFrom) fd.append('effectiveFrom', form.effectiveFrom)
+    if (form.effectiveTo) fd.append('effectiveTo', form.effectiveTo)
+    form.allowedRoles.forEach(role => fd.append('allowedRoles', role))
+    fd.append('authorityLevel', form.authorityLevel)
 
     await kbStore.uploadDocument(fd)
     ElMessage.success('上传成功，文档正在处理中')
     emit('uploaded')
     handleClose()
   } catch (e: any) {
-    ElMessage.error(e?.message || '上传失败')
+    ElMessage.error(e?.response?.data?.message || e?.message || '上传失败')
   } finally {
     uploading.value = false
   }
@@ -98,6 +113,9 @@ function handleClose() {
   form.securityLevel = '1'
   form.version = 'V1.0'
   form.effectiveFrom = new Date().toISOString().split('T')[0]
+  form.effectiveTo = ''
+  form.allowedRoles = ['EMPLOYEE']
+  form.authorityLevel = '1'
   fileList.value = []
   formRef.value?.resetFields()
   emit('update:visible', false)
@@ -108,7 +126,7 @@ function handleClose() {
   <el-dialog
     :model-value="visible"
     title="上传文档"
-    width="560px"
+    width="680px"
     :close-on-click-modal="false"
     @update:model-value="emit('update:visible', $event)"
     @close="handleClose"
@@ -126,6 +144,7 @@ function handleClose() {
           :auto-upload="false"
           :limit="1"
           :before-upload="beforeUpload"
+          @change="onFileChange"
           drag
           class="upload-area"
         >
@@ -133,6 +152,7 @@ function handleClose() {
           <div class="upload-text">
             <p class="upload-hint">将文件拖拽到此处，或<em>点击上传</em></p>
             <p class="upload-formats">支持 PDF、DOCX、Markdown、TXT、HTML，最大 50MB</p>
+            <p class="upload-storage">原文件将加密传输至企业私有阿里云 OSS Bucket</p>
           </div>
         </el-upload>
       </el-form-item>
@@ -155,7 +175,7 @@ function handleClose() {
           <el-form-item label="所属知识库" prop="knowledgeBaseId">
             <el-select v-model="form.knowledgeBaseId" placeholder="选择知识库" class="w-full">
               <el-option
-                v-for="kb in kbStore.knowledgeBases"
+                v-for="kb in kbStore.activeKnowledgeBases"
                 :key="kb.id"
                 :label="kb.name"
                 :value="kb.id"
@@ -202,6 +222,35 @@ function handleClose() {
           </el-form-item>
         </el-col>
       </el-row>
+
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="失效日期" prop="effectiveTo">
+            <el-date-picker
+              v-model="form.effectiveTo"
+              type="date"
+              placeholder="长期有效"
+              value-format="YYYY-MM-DD"
+              class="w-full"
+              :disabled-date="disableEffectiveDate"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="权威等级" prop="authorityLevel">
+            <el-select v-model="form.authorityLevel" class="w-full">
+              <el-option v-for="item in AUTHORITY_LEVELS" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-form-item label="允许访问的角色" prop="allowedRoles">
+        <el-select v-model="form.allowedRoles" multiple collapse-tags collapse-tags-tooltip class="w-full" placeholder="选择角色">
+          <el-option v-for="item in DOCUMENT_ROLES" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+        <div class="field-tip">权限将在检索阶段应用；未选择角色时仅知识库管理员可管理该文档。</div>
+      </el-form-item>
     </el-form>
 
     <template #footer>
@@ -255,6 +304,19 @@ function handleClose() {
   margin: 6px 0 0;
   font-size: 12px;
   color: #9ca3af;
+}
+
+.upload-storage {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #6366f1;
+}
+
+.field-tip {
+  margin-top: 5px;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .w-full {

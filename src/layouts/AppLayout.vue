@@ -41,7 +41,7 @@ function onSidebarCollapse(collapsed: boolean) {
 }
 
 .app-aside {
-  transition: width 0.35s var(--ease-out, cubic-bezier(0.16,1,0.3,1));
+  transition: width 280ms var(--ease-out, cubic-bezier(0.23,1,0.32,1));
   overflow: hidden;
   flex-shrink: 0;
 }

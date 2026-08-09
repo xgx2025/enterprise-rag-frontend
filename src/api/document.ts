@@ -5,6 +5,7 @@ import type {
   DocumentQueryParams,
   PaginatedResult,
   ChunkItem,
+  ObjectAccessResponse,
 } from '@/api/types'
 
 // ========== Mock Data ==========
@@ -168,25 +169,35 @@ export function getDocument(id: string): Promise<DocumentItem> {
 
 export function uploadDocument(_formData: FormData): Promise<DocumentItem> {
   if (useMockData()) {
-    return mockDelay(800, 400).then((): DocumentItem => ({
-      id: mockId('doc'),
-      knowledgeBaseId: 'kb-finance',
-      title: '新上传的文档',
-      fileName: 'new-doc.pdf',
-      fileType: 'PDF',
-      version: 'V1.0',
-      status: 'PROCESSING',
-      department: '财务部',
-      securityLevel: 1,
-      chunkCount: 0,
-      parseStatus: 'PENDING',
-      embeddingStatus: 'PENDING',
-      effectiveFrom: new Date().toISOString().split('T')[0]!,
-      effectiveTo: null,
-      createdBy: 'admin',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    } as DocumentItem))
+    return mockDelay(800, 400).then((): DocumentItem => {
+      const file = _formData.get('file') as File | null
+      const now = new Date().toISOString()
+      const doc: DocumentItem = {
+        id: mockId('doc'),
+        knowledgeBaseId: String(_formData.get('knowledgeBaseId') || 'kb-finance'),
+        title: String(_formData.get('title') || '新上传的文档'),
+        fileName: file?.name || 'new-doc.pdf',
+        fileType: file?.name.split('.').pop()?.toUpperCase() || 'PDF',
+        fileSize: file?.size || 0,
+        version: String(_formData.get('version') || 'V1.0'),
+        status: 'PROCESSING',
+        department: String(_formData.get('department') || '财务部'),
+        securityLevel: Number(_formData.get('securityLevel') || 1),
+        allowedRoles: _formData.getAll('allowedRoles').map(String),
+        authorityLevel: Number(_formData.get('authorityLevel') || 1),
+        chunkCount: 0,
+        parseStatus: 'PENDING',
+        embeddingStatus: 'PENDING',
+        processProgress: 0,
+        effectiveFrom: String(_formData.get('effectiveFrom') || new Date().toISOString().split('T')[0]),
+        effectiveTo: String(_formData.get('effectiveTo') || '') || null,
+        createdBy: 'admin',
+        createdAt: now,
+        updatedAt: now,
+      }
+      mockDocuments.unshift(doc)
+      return { ...doc }
+    })
   }
   return request.post('/documents', _formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -195,16 +206,43 @@ export function uploadDocument(_formData: FormData): Promise<DocumentItem> {
 
 export function deleteDocument(_id: string): Promise<void> {
   if (useMockData()) {
-    return mockDelay().then()
+    return mockDelay().then(() => {
+      const index = mockDocuments.findIndex(doc => doc.id === _id)
+      if (index >= 0) mockDocuments.splice(index, 1)
+    })
   }
   return request.delete(`/documents/${_id}`)
 }
 
 export function updateDocumentStatus(_id: string, _status: string): Promise<void> {
   if (useMockData()) {
-    return mockDelay().then()
+    return mockDelay().then(() => {
+      const doc = mockDocuments.find(item => item.id === _id)
+      if (doc) doc.status = _status as DocumentItem['status']
+    })
   }
-  return request.put(`/documents/${_id}/status`, { status: _status })
+  return request.put(`/documents/${_id}/status`, { status: _status }).then(() => undefined)
+}
+
+export function retryDocument(id: string): Promise<void> {
+  if (useMockData()) {
+    return mockDelay().then(() => {
+      const doc = mockDocuments.find(item => item.id === id)
+      if (doc) {
+        doc.status = 'PROCESSING'
+        doc.parseStatus = 'PENDING'
+        doc.failureMessage = null
+      }
+    })
+  }
+  return request.post(`/documents/${id}/retry`).then(() => undefined)
+}
+
+export function getDocumentPreviewUrl(id: string): Promise<ObjectAccessResponse> {
+  if (useMockData()) {
+    return Promise.reject(new Error('Mock 模式不提供原文件预览'))
+  }
+  return request.get(`/documents/${id}/preview-url`).then(res => res.data)
 }
 
 export function getDocumentChunks(documentId: string): Promise<ChunkItem[]> {

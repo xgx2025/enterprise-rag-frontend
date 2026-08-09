@@ -509,6 +509,13 @@ async function handleResetPassword() {
   50% { transform: translate(-50%, -50%) scale(1.15); }
 }
 
+/* Reduced motion: freeze the ambient orbs instead of looping forever */
+@media (prefers-reduced-motion: reduce) {
+  .bg-orb--1,
+  .bg-orb--2,
+  .bg-orb--3 { animation: none; }
+}
+
 /* ========== 卡片 ========== */
 .auth-card {
   position: relative;

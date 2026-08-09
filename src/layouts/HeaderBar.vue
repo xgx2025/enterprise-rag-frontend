@@ -123,7 +123,7 @@ async function handleLogout() {
 .page-title {
   font-size: 16px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
   letter-spacing: -0.01em;
 }
 
@@ -139,32 +139,32 @@ async function handleLogout() {
 :deep(.el-breadcrumb__separator) {
   display: inline-flex;
   margin: 0 6px;
-  color: #d1d5db;
+  color: var(--color-border-strong, #d1d5db);
   font-size: 11px;
 }
 :deep(.el-breadcrumb__separator::after) {
   content: '/';
 }
 :deep(.el-breadcrumb__inner) {
-  color: #6b7280;
+  color: var(--color-text-tertiary, #6b7280);
   font-size: 13px;
   font-weight: 400;
   transition: color 0.2s;
 }
 :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) {
-  color: #374151;
+  color: var(--color-text-secondary, #374151);
   font-weight: 500;
 }
 :deep(.el-breadcrumb__inner:hover) {
-  color: #6366f1;
+  color: var(--color-primary, #6366f1);
 }
 
 .home-icon {
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   transition: color 0.2s;
 }
 :deep(.el-breadcrumb__inner):hover .home-icon {
-  color: #6366f1;
+  color: var(--color-primary, #6366f1);
 }
 
 /* ── Right ── */
@@ -180,20 +180,20 @@ async function handleLogout() {
   align-items: center;
   gap: 6px;
   padding: 4px 12px;
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
+  background: var(--color-primary-bg, #eef2ff);
+  border: 1px solid var(--color-primary-lighter, #c7d2fe);
   border-radius: 8px;
   margin-right: 8px;
   font-size: 12px;
 }
 
 .tenant-label {
-  color: #6b7280;
+  color: var(--color-text-tertiary, #6b7280);
   font-size: 11px;
 }
 
 .tenant-name {
-  color: #4f46e5;
+  color: var(--color-primary-dark, #4f46e5);
   font-weight: 600;
 }
 
@@ -213,15 +213,15 @@ async function handleLogout() {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #6b7280;
+  color: var(--color-text-tertiary, #6b7280);
   cursor: pointer;
   font-size: 17px;
   transition: all 0.2s ease;
 }
 
 .action-btn:hover {
-  background: #f5f7fa;
-  color: #374151;
+  background: var(--color-bg-muted, #f5f7fa);
+  color: var(--color-text-secondary, #374151);
 }
 
 /* ── User trigger ── */
@@ -236,7 +236,7 @@ async function handleLogout() {
 }
 
 .user-trigger:hover {
-  background: #f5f7fa;
+  background: var(--color-bg-muted, #f5f7fa);
 }
 
 .avatar-wrapper {
@@ -249,7 +249,7 @@ async function handleLogout() {
   height: 32px;
   border-radius: 50%;
   background: var(--gradient-primary, linear-gradient(135deg,#6366f1,#8b5cf6));
-  color: #fff;
+  color: var(--color-bg-white, #fff);
   font-size: 12px;
   font-weight: 600;
   display: flex;
@@ -265,8 +265,8 @@ async function handleLogout() {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #10b981;
-  border: 1.5px solid #fff;
+  background: var(--color-success, #10b981);
+  border: 1.5px solid var(--color-bg-white, #fff);
 }
 
 .user-info {
@@ -277,20 +277,20 @@ async function handleLogout() {
 
 .user-name {
   font-size: 13px;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
   font-weight: 600;
   line-height: 1.2;
 }
 
 .user-role {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   line-height: 1.2;
 }
 
 .dropdown-arrow {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   transition: transform 0.2s ease;
 }
 
@@ -302,7 +302,7 @@ async function handleLogout() {
 .dh-label {
   font-size: 10px;
   font-weight: 700;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -319,7 +319,7 @@ async function handleLogout() {
   height: 28px;
   border-radius: 50%;
   background: var(--gradient-primary, linear-gradient(135deg,#6366f1,#8b5cf6));
-  color: #fff;
+  color: var(--color-bg-white, #fff);
   font-size: 10px;
   font-weight: 700;
   display: flex;
@@ -335,20 +335,20 @@ async function handleLogout() {
 
 .dp-name {
   font-size: 13px;
-  color: #111827;
+  color: var(--color-text-primary, #111827);
   font-weight: 600;
 }
 
 .dp-email {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
 }
 
 .logout-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #ef4444;
+  color: var(--color-danger, #ef4444);
   font-weight: 500;
 }
 </style>
@@ -357,7 +357,7 @@ async function handleLogout() {
 .user-dropdown-menu {
   border-radius: 14px !important;
   box-shadow: 0 16px 48px rgba(0,0,0,0.1) !important;
-  border: 1px solid #f3f4f6 !important;
+  border: 1px solid var(--color-border-light, #f3f4f6) !important;
   padding: 4px !important;
   min-width: 200px !important;
 }

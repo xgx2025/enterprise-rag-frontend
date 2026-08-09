@@ -105,6 +105,7 @@ onMounted(() => { evalStore.fetchLatestResults() })
 .evaluation-page {
   padding: 24px 28px;
   max-width: 1500px;
+  margin: 0 auto;
 }
 
 /* Hero */
@@ -170,12 +171,19 @@ onMounted(() => { evalStore.fetchLatestResults() })
 
 .sk-line {
   height: 14px;
-  background: #f3f4f6;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
   border-radius: 6px;
   margin-bottom: 8px;
+  animation: shimmer 1.5s infinite;
 }
 .sk-line.short { width: 50%; }
 .sk-line.long { width: 70%; }
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 
 /* Section */
 .section-header {
