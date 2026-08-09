@@ -6,6 +6,35 @@ import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { ElMessage } from 'element-plus'
 import { View, Link, RefreshRight } from '@element-plus/icons-vue'
 
+// 文件类型图标：按小写扩展名映射，缺失时回退到 default.svg
+const iconModules = import.meta.glob('@/assets/icons/filetypes/*.svg', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>
+
+const iconMap: Record<string, string> = {}
+for (const path in iconModules) {
+  const url = iconModules[path]
+  if (!url) continue
+  const name = path.split('/').pop()!.replace(/\.svg$/, '').toLowerCase()
+  iconMap[name] = url
+}
+
+// 已知别名归一：mock 数据用 'Markdown'，上传按后缀大写得到 'MD'
+const fileTypeAliases: Record<string, string> = {
+  md: 'markdown',
+  doc: 'docx',
+  xls: 'xlsx',
+  ppt: 'pptx',
+}
+
+function fileIconUrl(fileType?: string): string {
+  const key = (fileType || '').toLowerCase().trim()
+  const resolved = fileTypeAliases[key] ?? key
+  return iconMap[resolved] ?? iconMap['default'] ?? ''
+}
+
 const props = defineProps<{
   documents: DocumentItem[]
   loading: boolean
@@ -102,6 +131,7 @@ function formatFileSize(size?: number): string {
     <el-table-column prop="title" label="文件名称" min-width="180" show-overflow-tooltip>
       <template #default="{ row }">
         <div class="doc-title-cell">
+          <img :src="fileIconUrl(row.fileType)" class="doc-type-icon" :alt="row.fileType" />
           <span class="doc-title">{{ row.title }}</span>
           <span class="doc-version">{{ row.version }} · {{ row.fileType }}<template v-if="row.fileSize"> · {{ formatFileSize(row.fileSize) }}</template></span>
         </div>
@@ -137,7 +167,7 @@ function formatFileSize(size?: number): string {
       </template>
     </el-table-column>
 
-    <el-table-column prop="chunkCount" label="分块数" width="80" align="center" sortable />
+    <el-table-column prop="chunkCount" label="分块数" width="100" align="center" sortable />
 
     <el-table-column label="解析状态" width="90">
       <template #default="{ row }">
@@ -229,6 +259,13 @@ function formatFileSize(size?: number): string {
   gap: 8px;
 }
 
+.doc-type-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
 .doc-title {
   font-weight: 500;
   color: var(--color-text-primary, #111827);
@@ -262,5 +299,9 @@ function formatFileSize(size?: number): string {
   color: var(--color-text-secondary, #374151);
   font-weight: 600;
   font-size: 13px;
+}
+
+:deep(.el-table th.el-table__cell .cell) {
+  white-space: nowrap;
 }
 </style>
