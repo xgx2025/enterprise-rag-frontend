@@ -26,7 +26,7 @@ function formatDate(iso: string | undefined): string {
         size="small"
         type="primary"
         text
-        @click="chatStore.createConversation(); chatStore.resetCurrentConversation()"
+        @click="chatStore.startNewConversation()"
       >
         新对话
       </el-button>

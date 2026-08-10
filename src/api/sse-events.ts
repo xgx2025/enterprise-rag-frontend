@@ -6,12 +6,18 @@
 
 export type SSEEventType =
   | 'message.start'
+  | 'retrieval.started'
+  | 'retrieval.completed'
+  | 'rerank.completed'
+  | 'generation.started'
   | 'answer.delta'
+  | 'citation.completed'
   | 'citation.add'
   | 'retrieval.summary'
   | 'answer.status'
   | 'usage'
   | 'message.done'
+  | 'message.cancelled'
   | 'message.error'
 
 // ── Event payloads ──
@@ -38,9 +44,12 @@ export interface SSECitationAdd {
     documentId: string
     title: string
     version: string
+    effectiveDate: string
     sectionPath: string
     pageNumber: number
     quote: string
+    securityLevel: number
+    score: number
   }
 }
 
@@ -75,6 +84,16 @@ export interface SSEMessageDone {
   type: 'message.done'
   data: {
     messageId: string
+    conversationId: string
+    traceId: string
+  }
+}
+
+export interface SSEMessageCancelled {
+  type: 'message.cancelled'
+  data: {
+    messageId: string
+    conversationId: string
   }
 }
 
@@ -83,18 +102,31 @@ export interface SSEMessageError {
   data: {
     code: string
     message: string
+    messageId?: string
   }
+}
+
+export interface SSEStageEvent {
+  type:
+    | 'retrieval.started'
+    | 'retrieval.completed'
+    | 'rerank.completed'
+    | 'generation.started'
+    | 'citation.completed'
+  data: Record<string, unknown>
 }
 
 /** Union of all SSE event payloads */
 export type SSEEvent =
   | SSEMessageStart
+  | SSEStageEvent
   | SSEAnswerDelta
   | SSECitationAdd
   | SSERetrievalSummary
   | SSEAnswerStatus
   | SSEUsage
   | SSEMessageDone
+  | SSEMessageCancelled
   | SSEMessageError
 
 /**

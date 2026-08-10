@@ -1,31 +1,40 @@
+import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ElMessage } from 'element-plus'
 import {
-  getConversations,
-  getConversation,
   createConversation as createConvApi,
   deleteConversation as deleteConvApi,
+  getConversation,
+  getConversations,
   sendMessage as sendMsgApi,
+  streamMessage,
+  streamRegenerate,
+  streamRetry,
 } from '@/api/chat'
-import type { Conversation, ChatMessage, Citation } from '@/api/types'
-import { ElMessage } from 'element-plus'
+import { useMockData } from '@/composables/useMockData'
+import type { ChatStreamCallbacks } from '@/api/chat'
+import type { SSEEvent } from '@/api/sse-events'
+import type { Citation, ChatMessage, Conversation, SendMessageRequest } from '@/api/types'
+
+type StreamStarter = (callbacks: ChatStreamCallbacks) => AbortController
 
 export const useChatStore = defineStore('chat', () => {
-  // ---- State ----
   const conversations = ref<Conversation[]>([])
   const currentConversation = ref<Conversation | null>(null)
   const conversationsLoading = ref(false)
-  const sending = ref(false)   // whole send lifecycle (thinking + streaming)
-  const thinking = ref(false)  // awaiting first content from the API
+  const sending = ref(false)
+  const thinking = ref(false)
+  const streamStage = ref<string | null>(null)
   const selectedCitation = ref<Citation | null>(null)
   const activeKnowledgeBaseIds = ref<string[]>([])
-  const retrievalStrategy = ref<string>('hybrid')
+  const retrievalStrategy = ref<'hybrid' | 'dense' | 'sparse'>('hybrid')
+  const activeRequest = ref<AbortController | null>(null)
+  const streamingMessageId = ref<string | null>(null)
+  let cancelRequested = false
 
-  // ---- Getters ----
   const hasActiveConversation = computed(() => currentConversation.value !== null)
   const messages = computed(() => currentConversation.value?.messages ?? [])
 
-  // ---- Actions ----
   async function loadConversations() {
     conversationsLoading.value = true
     try {
@@ -36,186 +45,295 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function loadConversation(id: string) {
+    if (sending.value) cancelGeneration()
     conversationsLoading.value = true
     try {
-      currentConversation.value = await getConversation(id)
+      const conversation = await getConversation(id)
+      currentConversation.value = conversation
+      activeKnowledgeBaseIds.value = [...conversation.knowledgeBaseIds]
+      retrievalStrategy.value = conversation.retrievalStrategy ?? 'hybrid'
     } finally {
       conversationsLoading.value = false
     }
   }
 
   async function createConversation(): Promise<Conversation> {
-    const conv = await createConvApi()
-    conversations.value.unshift(conv)
-    currentConversation.value = conv
-    return conv
+    const conversation = await createConvApi()
+    conversations.value = [conversation, ...conversations.value.filter(item => item.id !== conversation.id)]
+    currentConversation.value = conversation
+    return conversation
+  }
+
+  async function startNewConversation() {
+    if (sending.value) cancelGeneration()
+    currentConversation.value = null
+    selectedCitation.value = null
   }
 
   async function deleteConversation(id: string) {
     try {
+      if (currentConversation.value?.id === id && sending.value) cancelGeneration()
       await deleteConvApi(id)
-      conversations.value = conversations.value.filter(c => c.id !== id)
-      if (currentConversation.value?.id === id) {
-        currentConversation.value = null
-      }
-    } catch (e: any) {
-      ElMessage.error(e?.message || '删除失败')
+      conversations.value = conversations.value.filter(conversation => conversation.id !== id)
+      if (currentConversation.value?.id === id) currentConversation.value = null
+    } catch (error: any) {
+      ElMessage.error(error?.response?.data?.message || error?.message || '删除失败')
     }
   }
 
   async function sendMessage(query: string) {
     if (!query.trim() || sending.value) return
+    if (!currentConversation.value) await createConversation()
 
-    // Auto-create conversation if none active
-    if (!currentConversation.value) {
-      await createConversation()
-    }
-
-    const conv = currentConversation.value!
-    conv.knowledgeBaseIds = [...activeKnowledgeBaseIds.value]
-
-    // Add user message
-    const userMsg: ChatMessage = {
-      id: `msg-${Date.now()}-user`,
+    const conversation = currentConversation.value!
+    conversation.knowledgeBaseIds = [...activeKnowledgeBaseIds.value]
+    conversation.retrievalStrategy = retrievalStrategy.value
+    const userMessage: ChatMessage = {
+      id: `local-${Date.now()}-user`,
       role: 'user',
-      content: query,
+      content: query.trim(),
       timestamp: new Date().toISOString(),
+      status: 'COMPLETED',
     }
-    conv.messages.push(userMsg)
-
-    // Update conversation title based on first message
-    if (conv.messages.length === 1) {
-      conv.title = query.length > 20 ? query.slice(0, 20) + '...' : query
-      conv.updatedAt = new Date().toISOString()
+    conversation.messages.push(userMessage)
+    if (conversation.messages.length === 1) {
+      conversation.title = query.length > 40 ? `${query.slice(0, 40)}…` : query
     }
 
-    await runAssistantTurn(query)
+    if (useMockData()) {
+      await runMockTurn(query)
+      return
+    }
+    const request = requestBody(query, conversation.id)
+    await runStream(callbacks => streamMessage(request, callbacks))
   }
 
-  /**
-   * Drop the last assistant answer and re-run the most recent user question.
-   */
   async function regenerateLastMessage() {
     if (sending.value) return
-    const conv = currentConversation.value
-    if (!conv) return
-
-    let lastUserIdx = -1
-    for (let i = conv.messages.length - 1; i >= 0; i--) {
-      const m = conv.messages[i]
-      if (m && m.role === 'user') { lastUserIdx = i; break }
-    }
-    if (lastUserIdx === -1) return
-
-    const lastUserMsg = conv.messages[lastUserIdx]
-    if (!lastUserMsg) return
-    const query = lastUserMsg.content
-    // Remove everything after the last user message (the stale answer)
-    if (conv.messages.length > lastUserIdx + 1) {
-      conv.messages.splice(lastUserIdx + 1)
-    }
-    await runAssistantTurn(query)
+    const conversation = currentConversation.value
+    if (!conversation) return
+    const index = findLastAssistantIndex(conversation)
+    if (index < 0) return
+    const message = conversation.messages[index]
+    if (message) await regenerateMessage(message.id)
   }
 
-  /**
-   * Core assistant turn: call the API, then reveal the answer progressively
-   * via a typewriter effect. Structured so a future true-SSE backend can
-   * replace the typewriter driver with real `answer.delta` chunks without
-   * touching the UI - just feed deltas through appendDelta().
-   */
-  async function runAssistantTurn(query: string) {
-    const conv = currentConversation.value!
-    const placeholderId = `msg-${Date.now()}-assistant`
+  async function regenerateMessage(messageId: string) {
+    if (sending.value) return
+    const conversation = currentConversation.value
+    if (!conversation) return
+    const index = conversation.messages.findIndex(message => message.id === messageId && message.role === 'assistant')
+    if (index < 0) return
+    const previous = conversation.messages[index]
+    if (!previous) return
+    conversation.messages.splice(index, 1)
+    const failed = previous.status === 'FAILED' || previous.status === 'CANCELLED'
+    await runStream(callbacks => failed
+      ? streamRetry(previous.id, callbacks)
+      : streamRegenerate(previous.id, callbacks))
+  }
 
-    // Placeholder assistant message; content streams in via the proxy below.
-    const assistantMsg: ChatMessage = {
-      id: placeholderId,
-      role: 'assistant',
-      content: '',
-      timestamp: new Date().toISOString(),
-      isStreaming: true,
+  function cancelGeneration() {
+    if (!sending.value) return
+    cancelRequested = true
+    activeRequest.value?.abort()
+    const message = findStreamingMessage()
+    if (message) {
+      message.isStreaming = false
+      message.status = 'CANCELLED'
+      if (!message.content) message.content = '回答生成已取消。'
     }
+    thinking.value = false
+    streamStage.value = null
+  }
 
+  async function runMockTurn(query: string) {
+    const conversation = currentConversation.value!
     sending.value = true
     thinking.value = true
     try {
-      const response = await sendMsgApi({
-        query,
-        conversationId: conv.id,
-        knowledgeBaseIds: activeKnowledgeBaseIds.value,
-      })
-      // Attach metadata before the message enters the list (reads are fine).
-      assistantMsg.citations = response.citations
-      assistantMsg.answerStatus = response.answerStatus
-      assistantMsg.retrievalStats = response.retrievalStats
-
-      thinking.value = false
-      conv.messages.push(assistantMsg)
-
-      // Reveal content progressively. Mutate via the reactive proxy found
-      // in the array so the view updates on every slice.
-      await streamReveal(conv, placeholderId, response.content)
-      conv.updatedAt = new Date().toISOString()
-    } catch (e: any) {
-      thinking.value = false
-      if (!conv.messages.some(m => m.id === placeholderId)) {
-        conv.messages.push(assistantMsg)
-      }
-      const msg = conv.messages.find(m => m.id === placeholderId)
-      if (msg) {
-        msg.content = '抱歉，消息发送失败。请稍后重试。'
-        msg.answerStatus = 'INSUFFICIENT'
-        msg.isStreaming = false
-      }
-      ElMessage.error(e?.message || '发送失败，请重试')
+      const response = await sendMsgApi(requestBody(query, conversation.id))
+      conversation.messages.push({ ...response, isStreaming: false })
+      conversation.updatedAt = new Date().toISOString()
+    } catch (error: any) {
+      ElMessage.error(error?.message || '发送失败，请重试')
     } finally {
       sending.value = false
       thinking.value = false
     }
   }
 
-  /**
-   * Typewriter reveal: slices `full` into growing prefixes on each animation
-   * frame. Step size scales with length so long answers finish in a bounded
-   * ~3-4s instead of crawling char-by-char. Honors reduced-motion by
-   * dumping the full text immediately (no animation).
-   */
-  function streamReveal(conv: Conversation, msgId: string, full: string): Promise<void> {
-    const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    return new Promise((resolve) => {
-      const finish = () => {
-        const msg = conv.messages.find(m => m.id === msgId)
-        if (msg) {
-          msg.content = full
-          msg.isStreaming = false
-        }
-        resolve()
-      }
-      if (prefersReduced || !full) { finish(); return }
+  async function runStream(start: StreamStarter) {
+    const conversation = currentConversation.value!
+    const temporaryId = `local-${Date.now()}-assistant`
+    const assistantMessage: ChatMessage = {
+      id: temporaryId,
+      role: 'assistant',
+      content: '',
+      citations: [],
+      timestamp: new Date().toISOString(),
+      isStreaming: true,
+      status: 'RUNNING',
+    }
+    conversation.messages.push(assistantMessage)
+    cancelRequested = false
+    streamingMessageId.value = temporaryId
+    sending.value = true
+    thinking.value = true
+    streamStage.value = '正在检索知识库'
 
-      const total = full.length
-      let i = 0
-      const step = () => {
-        const msg = conv.messages.find(m => m.id === msgId)
-        if (!msg) { resolve(); return }
-        if (i >= total) { msg.isStreaming = false; resolve(); return }
-        // ~220 frames cap; min 2 chars/frame for short answers
-        const inc = Math.max(2, Math.round(total / 220))
-        i = Math.min(total, i + inc)
-        msg.content = full.slice(0, i)
-        if (i < total) requestAnimationFrame(step)
-        else { msg.isStreaming = false; resolve() }
+    try {
+      await consumeStream(start)
+      conversation.updatedAt = new Date().toISOString()
+      if (!cancelRequested && currentConversation.value?.id === conversation.id) {
+        currentConversation.value = await getConversation(conversation.id)
+        activeKnowledgeBaseIds.value = [...currentConversation.value.knowledgeBaseIds]
       }
-      requestAnimationFrame(step)
+      if (!cancelRequested) await loadConversations()
+    } catch (error: any) {
+      const message = findStreamingMessage() ?? assistantMessage
+      message.isStreaming = false
+      message.status = 'FAILED'
+      if (!message.content) message.content = '抱歉，回答生成失败。请稍后重试。'
+      message.answerStatus = 'INSUFFICIENT'
+      ElMessage.error(error?.message || '发送失败，请重试')
+    } finally {
+      activeRequest.value = null
+      streamingMessageId.value = null
+      sending.value = false
+      thinking.value = false
+      streamStage.value = null
+    }
+  }
+
+  function consumeStream(start: StreamStarter): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let terminal = false
+      const finish = (callback: () => void) => {
+        if (terminal) return
+        terminal = true
+        callback()
+      }
+      activeRequest.value = start({
+        onEvent: event => handleEvent(event, () => finish(resolve), error => finish(() => reject(error))),
+        onDone: () => finish(resolve),
+        onAbort: () => finish(resolve),
+        onError: error => finish(() => reject(error)),
+      })
     })
   }
 
-  /** Future SSE hook: append a real delta chunk to a streaming message. */
-  function appendDelta(msgId: string, delta: string) {
-    const conv = currentConversation.value
-    if (!conv) return
-    const msg = conv.messages.find(m => m.id === msgId)
-    if (msg) msg.content += delta
+  function handleEvent(event: SSEEvent, done: () => void, fail: (error: Error) => void) {
+    const message = findStreamingMessage()
+    switch (event.type) {
+      case 'message.start':
+        if (message) {
+          message.id = event.data.messageId
+          streamingMessageId.value = event.data.messageId
+        }
+        if (currentConversation.value) currentConversation.value.id = event.data.conversationId
+        break
+      case 'retrieval.started':
+        streamStage.value = '正在检索知识库'
+        break
+      case 'retrieval.completed':
+        streamStage.value = '检索完成，正在重排'
+        break
+      case 'rerank.completed':
+        streamStage.value = '重排完成，正在生成回答'
+        break
+      case 'generation.started':
+        streamStage.value = '正在生成可信回答'
+        break
+      case 'citation.completed':
+        streamStage.value = '正在校验引用'
+        break
+      case 'answer.delta':
+        thinking.value = false
+        streamStage.value = '正在生成回答'
+        if (message) message.content += event.data.content
+        break
+      case 'citation.add':
+        if (message && !message.citations?.some(item => item.sourceId === event.data.sourceId)) {
+          message.citations = [...(message.citations ?? []), {
+            sourceId: event.data.sourceId,
+            documentId: event.data.documentId,
+            title: event.data.title,
+            version: event.data.version,
+            effectiveDate: event.data.effectiveDate || null,
+            sectionPath: event.data.sectionPath,
+            pageNumber: event.data.pageNumber || null,
+            quote: event.data.quote,
+            securityLevel: event.data.securityLevel,
+            score: event.data.score,
+          }]
+        }
+        break
+      case 'retrieval.summary':
+        if (message) message.retrievalStats = event.data
+        break
+      case 'answer.status':
+        if (message) message.answerStatus = event.data.status
+        break
+      case 'usage':
+        break
+      case 'message.done':
+        if (message) {
+          message.isStreaming = false
+          message.status = 'COMPLETED'
+          message.traceId = event.data.traceId
+        }
+        done()
+        break
+      case 'message.cancelled':
+        if (message) {
+          message.isStreaming = false
+          message.status = 'CANCELLED'
+          if (!message.content) message.content = '回答生成已取消。'
+        }
+        done()
+        break
+      case 'message.error':
+        if (message) {
+          message.isStreaming = false
+          message.status = 'FAILED'
+          message.errorCode = event.data.code
+          message.errorMessage = event.data.message
+        }
+        fail(new Error(event.data.message))
+        break
+    }
+  }
+
+  function requestBody(query: string, conversationId: string): SendMessageRequest {
+    return {
+      query,
+      conversationId,
+      knowledgeBaseIds: [...activeKnowledgeBaseIds.value],
+      strategy: {
+        dense: retrievalStrategy.value !== 'sparse',
+        sparse: retrievalStrategy.value !== 'dense',
+        rerank: true,
+      },
+    }
+  }
+
+  function findStreamingMessage(): ChatMessage | undefined {
+    const conversation = currentConversation.value
+    if (!conversation || !streamingMessageId.value) return undefined
+    return conversation.messages.find(message => message.id === streamingMessageId.value)
+  }
+
+  function findLastAssistantIndex(conversation: Conversation): number {
+    for (let index = conversation.messages.length - 1; index >= 0; index--) {
+      if (conversation.messages[index]?.role === 'assistant') return index
+    }
+    return -1
+  }
+
+  function appendDelta(messageId: string, delta: string) {
+    const message = currentConversation.value?.messages.find(item => item.id === messageId)
+    if (message) message.content += delta
   }
 
   function selectCitation(citation: Citation | null) {
@@ -227,12 +345,13 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function setRetrievalStrategy(strategy: string) {
-    retrievalStrategy.value = strategy
+    if (strategy === 'hybrid' || strategy === 'dense' || strategy === 'sparse') {
+      retrievalStrategy.value = strategy
+    }
   }
 
   function resetCurrentConversation() {
-    currentConversation.value = null
-    selectedCitation.value = null
+    startNewConversation()
   }
 
   return {
@@ -241,6 +360,7 @@ export const useChatStore = defineStore('chat', () => {
     conversationsLoading,
     sending,
     thinking,
+    streamStage,
     selectedCitation,
     activeKnowledgeBaseIds,
     retrievalStrategy,
@@ -249,9 +369,12 @@ export const useChatStore = defineStore('chat', () => {
     loadConversations,
     loadConversation,
     createConversation,
+    startNewConversation,
     deleteConversation,
     sendMessage,
     regenerateLastMessage,
+    regenerateMessage,
+    cancelGeneration,
     appendDelta,
     selectCitation,
     setActiveKnowledgeBases,

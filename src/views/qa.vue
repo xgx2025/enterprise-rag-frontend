@@ -7,7 +7,7 @@ import ConversationHistory from '@/components/qa/ConversationHistory.vue'
 import ChatMessage from '@/components/qa/ChatMessage.vue'
 import CitationPanel from '@/components/qa/CitationPanel.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import { Promotion, Cpu } from '@element-plus/icons-vue'
+import { Promotion, Cpu, CloseBold } from '@element-plus/icons-vue'
 
 const chatStore = useChatStore()
 const kbStore = useKnowledgeBaseStore()
@@ -37,8 +37,8 @@ async function handleSend() {
   scrollToBottom(true)
 }
 
-async function handleRegenerate() {
-  await chatStore.regenerateLastMessage()
+async function handleRegenerate(messageId: string) {
+  await chatStore.regenerateMessage(messageId)
   scrollToBottom(true)
 }
 
@@ -71,6 +71,10 @@ onMounted(async () => {
 })
 
 watch(() => chatStore.messages.length, () => scrollToBottom(false))
+watch(
+  () => chatStore.messages[chatStore.messages.length - 1]?.content.length,
+  () => scrollToBottom(false),
+)
 </script>
 
 <template>
@@ -135,6 +139,9 @@ watch(() => chatStore.messages.length, () => scrollToBottom(false))
                 <span class="typing-dot"></span>
                 <span class="typing-dot"></span>
                 <span class="typing-dot"></span>
+                <span v-if="chatStore.streamStage" class="stream-stage">
+                  {{ chatStore.streamStage }}
+                </span>
               </div>
             </div>
           </transition>
@@ -163,12 +170,16 @@ watch(() => chatStore.messages.length, () => scrollToBottom(false))
           </div>
           <button
             class="send-btn"
-            :class="{ ready: inputText.trim() && !chatStore.sending && chatStore.activeKnowledgeBaseIds.length > 0 }"
-            :disabled="!inputText.trim() || chatStore.sending || chatStore.activeKnowledgeBaseIds.length === 0"
-            @click="handleSend"
+            :class="{
+              ready: inputText.trim() && !chatStore.sending && chatStore.activeKnowledgeBaseIds.length > 0,
+              stop: chatStore.sending,
+            }"
+            :disabled="!chatStore.sending && (!inputText.trim() || chatStore.activeKnowledgeBaseIds.length === 0)"
+            :title="chatStore.sending ? '停止生成' : '发送'"
+            @click="chatStore.sending ? chatStore.cancelGeneration() : handleSend()"
           >
             <el-icon v-if="!chatStore.sending" class="send-icon"><Promotion /></el-icon>
-            <el-icon v-else class="send-icon spinning"><Cpu /></el-icon>
+            <el-icon v-else class="send-icon"><CloseBold /></el-icon>
           </button>
         </div>
       </div>
@@ -363,11 +374,18 @@ watch(() => chatStore.messages.length, () => scrollToBottom(false))
 
 .typing-bubble {
   display: flex;
+  align-items: center;
   gap: 4px;
   padding: 12px 16px;
   background: var(--color-bg-white, #fff);
   border-radius: 14px 14px 14px 4px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.stream-stage {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--color-text-tertiary, #6b7280);
 }
 
 .typing-dot {
@@ -498,6 +516,17 @@ watch(() => chatStore.messages.length, () => scrollToBottom(false))
 
 .send-btn.ready:active {
   transform: scale(0.96);
+}
+
+.send-btn.stop {
+  background: var(--color-danger, #ef4444);
+  color: var(--color-bg-white, #fff);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25);
+}
+
+.send-btn.stop:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.35);
 }
 
 .send-btn:disabled {

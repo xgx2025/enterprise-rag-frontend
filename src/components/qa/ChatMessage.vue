@@ -13,19 +13,29 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'cite': [sourceId: string]
-  'regenerate': []
+  'regenerate': [messageId: string]
 }>()
 
 const statsExpanded = ref(false)
 const contentRef = ref<HTMLElement | null>(null)
 
-const renderedContent = computed(() =>
-  renderMarkdown(props.message.content ?? '', !!props.message.isStreaming)
-)
-
 const isAssistant = computed(() => props.message.role === 'assistant')
+const retryable = computed(() =>
+  props.message.status === 'FAILED' || props.message.status === 'CANCELLED'
+)
+const effectiveContent = computed(() => {
+  if (props.message.content) return props.message.content
+  if (props.message.status === 'CANCELLED') return '回答生成已取消。'
+  if (props.message.status === 'FAILED') {
+    return props.message.errorMessage || '抱歉，回答生成失败。请稍后重试。'
+  }
+  return ''
+})
+const renderedContent = computed(() =>
+  renderMarkdown(effectiveContent.value, !!props.message.isStreaming)
+)
 const showActions = computed(() =>
-  isAssistant.value && !props.message.isStreaming && !!props.message.content
+  isAssistant.value && !props.message.isStreaming && !!effectiveContent.value
 )
 
 // Highlight code blocks once streaming settles (or on mount for history).
@@ -48,7 +58,7 @@ function onContentClick(e: MouseEvent) {
 
 async function handleCopy() {
   try {
-    await navigator.clipboard.writeText(props.message.content ?? '')
+    await navigator.clipboard.writeText(effectiveContent.value)
     ElMessage.success('已复制到剪贴板')
   } catch {
     ElMessage.error('复制失败，请手动选择文本')
@@ -95,9 +105,13 @@ async function handleCopy() {
             <el-icon><CopyDocument /></el-icon>
             <span>复制</span>
           </button>
-          <button class="action-chip" @click="emit('regenerate')" title="重新生成">
+          <button
+            class="action-chip"
+            @click="emit('regenerate', message.id)"
+            :title="retryable ? '重试回答' : '重新生成'"
+          >
             <el-icon><Refresh /></el-icon>
-            <span>重新生成</span>
+            <span>{{ retryable ? '重试' : '重新生成' }}</span>
           </button>
         </div>
       </transition>

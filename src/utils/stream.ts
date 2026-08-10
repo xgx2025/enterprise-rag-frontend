@@ -16,6 +16,7 @@ export interface StreamOptions {
   /** Typed structured events */
   onEvent?: (event: SSEEvent) => void
   onDone?: () => void
+  onAbort?: () => void
   onError?: (error: Error) => void
 }
 
@@ -27,6 +28,14 @@ export function streamPost(opts: StreamOptions): AbortController {
   const controller = new AbortController()
   const signal = opts.signal || controller.signal
   const authStore = useAuthStore()
+
+  let finished = false
+  const finish = () => {
+    if (!finished) {
+      finished = true
+      opts.onDone?.()
+    }
+  }
 
   fetch(opts.url, {
     method: 'POST',
@@ -53,36 +62,47 @@ export function streamPost(opts: StreamOptions): AbortController {
       while (true) {
         const { done, value } = await reader.read()
         if (done) {
-          opts.onDone?.()
+          buffer += decoder.decode()
+          consumeFrames(buffer, opts, finish)
+          finish()
           break
         }
 
         buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim()
-            if (data === '[DONE]') {
-              opts.onDone?.()
-              return
-            }
-            opts.onChunk?.(data)
-            if (opts.onEvent) {
-              const event = parseSSEEvent(data)
-              if (event) opts.onEvent(event)
-            }
-          }
-        }
+        const normalized = buffer.replace(/\r\n/g, '\n')
+        const frames = normalized.split('\n\n')
+        buffer = frames.pop() || ''
+        for (const frame of frames) consumeFrames(frame, opts, finish)
       }
     })
     .catch(err => {
-      if (err.name === 'AbortError') return
+      if (err.name === 'AbortError') {
+        opts.onAbort?.()
+        return
+      }
       opts.onError?.(err)
     })
 
   return controller
+}
+
+function consumeFrames(frame: string, opts: StreamOptions, finish: () => void) {
+  if (!frame.trim()) return
+  const data = frame
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .filter(line => line.startsWith('data:'))
+    .map(line => line.slice(5).trimStart())
+    .join('\n')
+    .trim()
+  if (!data) return
+  if (data === '[DONE]') {
+    finish()
+    return
+  }
+  opts.onChunk?.(data)
+  const event = parseSSEEvent(data)
+  if (event) opts.onEvent?.(event)
 }
 
 /**

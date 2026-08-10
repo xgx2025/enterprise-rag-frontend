@@ -9,11 +9,12 @@ export interface Citation {
   documentId: string
   title: string
   version: string
-  effectiveDate: string
+  effectiveDate: string | null
   sectionPath: string
-  pageNumber: number
+  pageNumber: number | null
   quote: string
   securityLevel: number
+  score?: number
 }
 
 export interface RetrievalStats {
@@ -33,12 +34,17 @@ export interface ChatMessage {
   retrievalStats?: RetrievalStats
   timestamp: string
   isStreaming?: boolean
+  status?: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'SUPERSEDED'
+  traceId?: string
+  errorCode?: string
+  errorMessage?: string
 }
 
 export interface Conversation {
   id: string
   title: string
   knowledgeBaseIds: string[]
+  retrievalStrategy?: 'hybrid' | 'dense' | 'sparse'
   messages: ChatMessage[]
   createdAt: string
   updatedAt: string
@@ -48,4 +54,11 @@ export interface SendMessageRequest {
   query: string
   conversationId?: string
   knowledgeBaseIds: string[]
+  strategy?: {
+    dense?: boolean
+    sparse?: boolean
+    rerank?: boolean
+  }
+  topK?: number
+  contextMaxCharacters?: number
 }

@@ -1,6 +1,8 @@
 import request from '@/utils/request'
+import { streamPost } from '@/utils/stream'
 import { useMockData, mockDelay, mockId } from '@/composables/useMockData'
 import type { Conversation, ChatMessage, Citation, RetrievalStats, SendMessageRequest } from '@/api/types'
+import type { SSEEvent } from '@/api/sse-events'
 
 // ========== Mock Data ==========
 
@@ -157,4 +159,38 @@ export function sendMessage(data: SendMessageRequest): Promise<ChatMessage> {
     })
   }
   return request.post('/chat/send', data).then(res => res.data)
+}
+
+export interface ChatStreamCallbacks {
+  onEvent: (event: SSEEvent) => void
+  onDone: () => void
+  onAbort: () => void
+  onError: (error: Error) => void
+}
+
+/** 使用后端 SSE 事件流发送新问题。 */
+export function streamMessage(data: SendMessageRequest, callbacks: ChatStreamCallbacks): AbortController {
+  return streamPost({
+    url: '/api/v1/chat/stream',
+    body: data,
+    ...callbacks,
+  })
+}
+
+/** 使用原用户问题流式重新生成回答。 */
+export function streamRegenerate(messageId: string, callbacks: ChatStreamCallbacks): AbortController {
+  return streamPost({
+    url: `/api/v1/chat/messages/${messageId}/regenerate/stream`,
+    body: {},
+    ...callbacks,
+  })
+}
+
+/** 流式重试失败或已取消的回答。 */
+export function streamRetry(messageId: string, callbacks: ChatStreamCallbacks): AbortController {
+  return streamPost({
+    url: `/api/v1/chat/messages/${messageId}/retry/stream`,
+    body: {},
+    ...callbacks,
+  })
 }
