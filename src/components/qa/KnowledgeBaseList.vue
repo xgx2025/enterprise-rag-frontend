@@ -2,6 +2,10 @@
 import { computed } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
+import { ArrowRight } from '@element-plus/icons-vue'
+
+defineProps<{ collapsed: boolean }>()
+defineEmits<{ 'toggle-sidebar': [] }>()
 
 const chatStore = useChatStore()
 const kbStore = useKnowledgeBaseStore()
@@ -43,6 +47,16 @@ const strategyOptions = [
 <template>
   <div class="kb-bar">
     <div class="kb-bar-row">
+      <button
+        v-if="collapsed"
+        class="sidebar-toggle"
+        type="button"
+        title="展开历史会话栏"
+        aria-label="展开历史会话栏"
+        @click="$emit('toggle-sidebar')"
+      >
+        <el-icon><ArrowRight /></el-icon>
+      </button>
       <span class="kb-bar-label">知识范围</span>
       <div class="kb-chips">
         <button
@@ -94,6 +108,32 @@ const strategyOptions = [
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+/* Sidebar collapse toggle */
+.sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--color-bg-white, #fff);
+  color: var(--color-text-tertiary, #6b7280);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.sidebar-toggle:hover {
+  border-color: var(--color-primary-lighter, #c7d2fe);
+  background: var(--color-primary-bg, #eef2ff);
+  color: var(--color-primary, #6366f1);
+}
+
+.sidebar-toggle .el-icon {
+  font-size: 14px;
 }
 
 .kb-bar-label {

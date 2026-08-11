@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { useChatStore } from '@/stores/chat'
-import { ChatDotRound, Delete } from '@element-plus/icons-vue'
+import { ChatDotRound, Delete, ArrowLeft, Plus } from '@element-plus/icons-vue'
+
+defineProps<{ collapsed: boolean }>()
+defineEmits<{ 'toggle-sidebar': [] }>()
 
 const chatStore = useChatStore()
 
@@ -21,15 +24,25 @@ function formatDate(iso: string | undefined): string {
 <template>
   <div class="conv-panel">
     <div class="conv-header">
+      <button
+        v-if="!collapsed"
+        class="conv-toggle"
+        type="button"
+        title="收起历史会话栏"
+        aria-label="收起历史会话栏"
+        @click="$emit('toggle-sidebar')"
+      >
+        <el-icon><ArrowLeft /></el-icon>
+      </button>
       <span class="panel-title">历史会话</span>
-      <el-button
-        size="small"
-        type="primary"
-        text
+      <button
+        class="new-chat-btn"
+        type="button"
         @click="chatStore.startNewConversation()"
       >
-        新对话
-      </el-button>
+        <el-icon><Plus /></el-icon>
+        <span>新对话</span>
+      </button>
     </div>
 
     <div v-loading="chatStore.conversationsLoading" class="conv-list">
@@ -67,13 +80,77 @@ function formatDate(iso: string | undefined): string {
 .conv-panel {
   padding: 16px;
   border-top: 1px solid var(--color-border-light, #f3f4f6);
+  /* Fill the .qa-left flex column instead of collapsing to content height. */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .conv-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+/* Collapse button - sits at the top-left corner of the sidebar */
+.conv-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 7px;
+  background: var(--color-bg-white, #fff);
+  color: var(--color-text-tertiary, #6b7280);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.conv-toggle:hover {
+  border-color: var(--color-primary-lighter, #c7d2fe);
+  background: var(--color-primary-bg, #eef2ff);
+  color: var(--color-primary, #6366f1);
+}
+
+.conv-toggle .el-icon {
+  font-size: 13px;
+}
+
+/* New chat - soft primary CTA pushed to the right edge */
+.new-chat-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--color-primary-lighter, #c7d2fe);
+  border-radius: 8px;
+  background: var(--color-primary-bg, #eef2ff);
+  color: var(--color-primary, #6366f1);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.new-chat-btn:hover {
+  background: var(--color-primary, #6366f1);
+  border-color: var(--color-primary, #6366f1);
+  color: var(--color-bg-white, #fff);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(99,102,241,0.25);
+}
+
+.new-chat-btn .el-icon {
+  font-size: 13px;
 }
 
 .panel-title {
@@ -85,7 +162,8 @@ function formatDate(iso: string | undefined): string {
 }
 
 .conv-list {
-  max-height: 300px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 

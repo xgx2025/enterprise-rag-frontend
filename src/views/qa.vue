@@ -15,6 +15,7 @@ const kbStore = useKnowledgeBaseStore()
 const inputText = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputFocused = ref(false)
+const sidebarCollapsed = ref(false)
 
 function scrollToBottom(smooth = true) {
   nextTick(() => {
@@ -78,16 +79,22 @@ watch(
 </script>
 
 <template>
-  <div class="qa-page">
+  <div class="qa-page" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
     <!-- Left Panel -->
     <div class="qa-left">
-      <ConversationHistory />
+      <ConversationHistory
+        :collapsed="sidebarCollapsed"
+        @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
+      />
     </div>
 
     <!-- Center: Chat -->
     <div class="qa-center">
       <!-- Knowledge base selector -->
-      <KnowledgeBaseList />
+      <KnowledgeBaseList
+        :collapsed="sidebarCollapsed"
+        @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
+      />
 
       <!-- Empty state -->
       <transition name="empty-fade" mode="out-in">
@@ -206,9 +213,18 @@ watch(
   transition: grid-template-columns 0.35s var(--ease-out, cubic-bezier(0.16,1,0.3,1));
 }
 
+/* Sidebar collapsed: hide the left column entirely */
+.qa-page.sidebar-collapsed {
+  grid-template-columns: 0px 1fr 0px;
+}
+
 /* When citation panel is open, expand right column */
 .qa-page:has(.qa-right) {
   grid-template-columns: 240px 1fr 400px;
+}
+
+.qa-page.sidebar-collapsed:has(.qa-right) {
+  grid-template-columns: 0px 1fr 400px;
 }
 
 /* ── Left Panel ── */
@@ -217,7 +233,15 @@ watch(
   border-right: 1px solid var(--color-border-light, #f3f4f6);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  /* overflow:hidden + min-width:0 let the column shrink to 0 when collapsed
+     instead of the content forcing it open. */
+  overflow: hidden;
+  min-width: 0;
+  transition: border-color 0.35s var(--ease-out, cubic-bezier(0.16,1,0.3,1));
+}
+
+.qa-page.sidebar-collapsed .qa-left {
+  border-right-color: transparent;
 }
 
 /* ── Center Panel ── */
@@ -225,6 +249,10 @@ watch(
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* min-height:0 lets this grid item stay bound to its track so the inner
+     .chat-messages can scroll instead of being stretched by its content
+     (which would clip the lower half behind the parent's overflow:hidden). */
+  min-height: 0;
   background: var(--color-bg-stripe, #fafbfc);
 }
 
@@ -337,6 +365,10 @@ watch(
 /* ── Messages ── */
 .chat-messages {
   flex: 1;
+  /* min-height:0 is required on a scrolling flex item: without it the default
+     min-height:auto makes overflowing content stretch this element past its
+     allotted flex space, so the lower messages get clipped and unscrollable. */
+  min-height: 0;
   overflow-y: auto;
   padding: 20px 24px;
   scroll-behavior: smooth;

@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import {
-  ChatDotRound, Document, Monitor, DataAnalysis,
+  ChatDotRound, Document, Monitor, DataAnalysis, Fold, Expand,
 } from '@element-plus/icons-vue'
 
 const emit = defineEmits<{
@@ -76,10 +76,6 @@ function toggleCollapse() {
 
     <!-- Navigation -->
     <div class="sidebar-nav">
-      <div
-        class="nav-section-label"
-        :class="{ 'label-hidden': isCollapsed }"
-      >导航菜单</div>
       <el-menu
         :default-active="activeMenu"
         router
@@ -133,15 +129,28 @@ function toggleCollapse() {
     </div>
 
     <!-- Footer -->
-    <div class="sidebar-footer" @click="toggleCollapse">
-      <div class="footer-icon" :class="{ rotated: isCollapsed }">
-        <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M12 16l-6-6 6-6" />
-        </svg>
-      </div>
-      <transition name="brand-fade">
-        <span v-if="!isCollapsed" class="footer-text">收起菜单</span>
-      </transition>
+    <div class="sidebar-footer">
+      <el-tooltip
+        content="展开菜单"
+        placement="right"
+        :show-after="400"
+        effect="dark"
+        :offset="10"
+        :disabled="!isCollapsed"
+      >
+        <button
+          class="collapse-btn"
+          type="button"
+          :aria-label="isCollapsed ? '展开菜单' : '收起菜单'"
+          @click="toggleCollapse"
+        >
+          <el-icon class="collapse-btn-icon">
+            <Fold v-if="!isCollapsed" />
+            <Expand v-else />
+          </el-icon>
+          <span class="collapse-btn-text">收起菜单</span>
+        </button>
+      </el-tooltip>
     </div>
   </nav>
 </template>
@@ -222,38 +231,6 @@ function toggleCollapse() {
   padding: 8px 0;
   overflow-y: auto;
   overflow-x: hidden;
-}
-
-/* Section label — always in DOM, transitions in/out with opacity+height */
-.nav-section-label {
-  padding: 16px 18px 8px;
-  font-size: 10px;
-  font-weight: 700;
-  color: rgba(199,210,254,0.4);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-  max-height: 40px;
-  overflow: hidden;
-  /* ENTER (expand) - see .menu-text for the asymmetric enter/leave rationale */
-  transition:
-    opacity 280ms var(--ease-out) 80ms,
-    transform 280ms var(--ease-out) 80ms,
-    max-height 320ms var(--ease-out) 80ms,
-    padding 320ms var(--ease-out) 80ms;
-}
-
-.nav-section-label.label-hidden {
-  opacity: 0;
-  transform: translateX(-6px);
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  transition:
-    opacity 140ms ease-out,
-    transform 140ms ease-out,
-    max-height 180ms ease-out,
-    padding 180ms ease-out;
 }
 
 .nav-menu {
@@ -471,51 +448,94 @@ function toggleCollapse() {
   transform: scale(0.93) !important;
 }
 
-/* Footer — center chevron */
-.sidebar.collapsed .sidebar-footer {
-  justify-content: center;
-  padding: 14px 0;
-}
-
 /* ── Footer ── */
 .sidebar-footer {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-top: 1px solid rgba(255,255,255,0.06);
-  cursor: pointer;
-  color: rgba(199,210,254,0.55);
-  font-size: 12.5px;
-  transition:
-    color 200ms ease,
-    background 200ms ease,
-    padding 280ms var(--ease-out);
-  user-select: none;
+  transition: padding 280ms var(--ease-out);
 }
 
-.sidebar-footer:hover {
-  color: #fff;
+.sidebar.collapsed .sidebar-footer {
+  padding: 14px 0;
+}
+
+/* ── Collapse button ── */
+.collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
   background: rgba(255,255,255,0.04);
-}
-
-.sidebar-footer:active {
-  transform: scale(0.97);
-  transition: transform 100ms ease-out;
-}
-
-.footer-icon {
-  flex-shrink: 0;
-  display: flex;
-  transition: transform 280ms var(--ease-out);
-}
-
-.footer-icon.rotated {
-  transform: rotate(180deg);
-}
-
-.footer-text {
+  color: rgba(199,210,254,0.7);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
   white-space: nowrap;
+  user-select: none;
+  outline: none;
+  transition:
+    all 0.28s var(--ease-out),
+    transform 0.2s var(--ease-out),
+    box-shadow 0.25s var(--ease-out);
+}
+
+/* Icon-only circle when sidebar collapsed */
+.sidebar.collapsed .collapse-btn {
+  width: 34px;
+  padding: 0;
+  border-radius: 50%;
+  justify-content: center;
+  gap: 0;
+}
+
+.collapse-btn:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.18);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+
+.collapse-btn:active {
+  transform: scale(0.96) !important;
+  transition: transform 0.1s ease-out;
+}
+
+/* Focus-visible ring for keyboard users */
+.collapse-btn:focus-visible {
+  outline: 2px solid rgba(165,180,252,0.6);
+  outline-offset: 2px;
+}
+
+.collapse-btn-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+/* Text: always in DOM, fades/shrinks via CSS driven by .sidebar.collapsed */
+.collapse-btn-text {
+  display: inline-block;
+  overflow: hidden;
+  max-width: 100px;
+  opacity: 1;
+  transition:
+    opacity 200ms var(--ease-out) 80ms,
+    max-width 250ms var(--ease-out) 80ms;
+}
+
+.sidebar.collapsed .collapse-btn-text {
+  opacity: 0;
+  max-width: 0;
+  transition:
+    opacity 100ms ease-out,
+    max-width 150ms ease-out;
 }
 
 /* ── Brand & footer text enter/leave ── */
@@ -545,9 +565,10 @@ function toggleCollapse() {
   .sidebar,
   .sidebar-brand,
   .nav-menu,
-  .nav-section-label,
   .sidebar-footer,
-  .footer-icon,
+  .collapse-btn,
+  .collapse-btn-icon,
+  .collapse-btn-text,
   .menu-item-content,
   .menu-item-content :deep(.el-icon),
   .menu-text {
@@ -575,16 +596,11 @@ function toggleCollapse() {
     transform: none !important;
   }
 
-  .sidebar-footer:active {
-    transform: none;
+  .collapse-btn:active {
+    transform: none !important;
   }
 
   .sidebar.collapsed .menu-text {
-    opacity: 0;
-    transform: none;
-  }
-
-  .nav-section-label.label-hidden {
     opacity: 0;
     transform: none;
   }
