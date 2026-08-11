@@ -126,7 +126,6 @@ export const useChatStore = defineStore('chat', () => {
     if (index < 0) return
     const previous = conversation.messages[index]
     if (!previous) return
-    conversation.messages.splice(index, 1)
     const failed = previous.status === 'FAILED' || previous.status === 'CANCELLED'
     await runStream(callbacks => failed
       ? streamRetry(previous.id, callbacks)
@@ -308,6 +307,7 @@ export const useChatStore = defineStore('chat', () => {
   function requestBody(query: string, conversationId: string): SendMessageRequest {
     return {
       query,
+      requestId: createRequestId(),
       conversationId,
       knowledgeBaseIds: [...activeKnowledgeBaseIds.value],
       strategy: {
@@ -316,6 +316,13 @@ export const useChatStore = defineStore('chat', () => {
         rerank: true,
       },
     }
+  }
+
+  function createRequestId(): string {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID()
+    }
+    return `${Date.now()}_${Math.random().toString(36).slice(2, 14)}`
   }
 
   function findStreamingMessage(): ChatMessage | undefined {

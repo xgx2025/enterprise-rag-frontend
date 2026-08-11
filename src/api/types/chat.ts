@@ -52,6 +52,8 @@ export interface Conversation {
 
 export interface SendMessageRequest {
   query: string
+  /** 客户端生成的单次发送幂等键，网络重试不得复用为新的业务请求。 */
+  requestId?: string
   conversationId?: string
   knowledgeBaseIds: string[]
   strategy?: {
