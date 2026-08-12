@@ -22,7 +22,7 @@ watch(() => route.query.mode, (val) => {
 })
 
 const loginForm = reactive({
-  username: '',
+  email: '',
   password: '',
 })
 
@@ -42,7 +42,10 @@ const resetForm = reactive({
 })
 
 const loginRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' },
+  ],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 }
 
@@ -136,7 +139,10 @@ async function handleLogin() {
   if (!valid) return
   loading.value = true
   try {
-    await authStore.login(loginForm)
+    await authStore.login({
+      email: loginForm.email.trim().toLowerCase(),
+      password: loginForm.password,
+    })
     ElMessage.success('登录成功')
     router.push('/')
   } catch (e: any) {
@@ -176,7 +182,7 @@ async function handleResetPassword() {
       code: resetForm.code,
       newPassword: resetForm.newPassword,
     })
-    loginForm.username = ''
+    loginForm.email = ''
     loginForm.password = ''
     ElMessage.success('密码已重置，请重新登录')
     switchMode('login')
@@ -251,10 +257,12 @@ async function handleResetPassword() {
               hide-required-asterisk
               @submit.prevent="handleLogin"
             >
-              <el-form-item label="用户名" prop="username">
+              <el-form-item label="邮箱" prop="email">
                 <el-input
-                  v-model="loginForm.username"
-                  placeholder="请输入用户名"
+                  v-model="loginForm.email"
+                  type="email"
+                  autocomplete="email"
+                  placeholder="请输入注册邮箱"
                   size="large"
                 />
               </el-form-item>
@@ -262,6 +270,7 @@ async function handleResetPassword() {
                 <el-input
                   v-model="loginForm.password"
                   type="password"
+                  autocomplete="current-password"
                   placeholder="请输入密码"
                   size="large"
                   show-password
