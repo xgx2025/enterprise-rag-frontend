@@ -5,8 +5,9 @@ import AnswerStatusBadge from './AnswerStatusBadge.vue'
 import RetrievalFooter from './RetrievalFooter.vue'
 import { renderMarkdown, highlightAll } from '@/utils/markdown'
 import { ElMessage } from 'element-plus'
-import { Cpu, CopyDocument, Refresh } from '@element-plus/icons-vue'
+import { CopyDocument, Refresh } from '@element-plus/icons-vue'
 import { useChatStore } from '@/stores/chat'
+import robotIcon from '@/assets/icons/robot.svg?url'
 
 const props = defineProps<{
   message: ChatMessage
@@ -79,7 +80,7 @@ async function handleCopy() {
   <div class="chat-message" :class="message.role">
     <!-- Assistant avatar -->
     <div v-if="isAssistant" class="msg-avatar">
-      <Cpu />
+      <img :src="robotIcon" class="msg-avatar-icon" alt="AI 助手" />
     </div>
 
     <div class="message-body">
@@ -166,15 +167,21 @@ async function handleCopy() {
   height: 34px;
   border-radius: 12px;
   background: var(--gradient-primary, linear-gradient(135deg,#6366f1,#8b5cf6));
-  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
   flex-shrink: 0;
   /* Top-align so the avatar sits beside the bubble's process header (which now
      leads the message) instead of floating at the bottom next to the actions. */
   align-self: flex-start;
+}
+
+.msg-avatar-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* Body */
