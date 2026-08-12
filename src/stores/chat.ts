@@ -170,6 +170,7 @@ export const useChatStore = defineStore('chat', () => {
       role: 'assistant',
       content: '',
       citations: [],
+      reasoningSteps: [],
       timestamp: new Date().toISOString(),
       isStreaming: true,
       status: 'RUNNING',
@@ -243,6 +244,16 @@ export const useChatStore = defineStore('chat', () => {
         break
       case 'generation.started':
         streamStage.value = '正在生成可信回答'
+        break
+      case 'reasoning.step':
+        if (message) {
+          const existing = message.reasoningSteps?.findIndex(step => step.id === event.data.id) ?? -1
+          if (existing >= 0 && message.reasoningSteps) {
+            message.reasoningSteps[existing] = { ...event.data }
+          } else {
+            message.reasoningSteps = [...(message.reasoningSteps ?? []), { ...event.data }]
+          }
+        }
         break
       case 'citation.completed':
         streamStage.value = '正在校验引用'

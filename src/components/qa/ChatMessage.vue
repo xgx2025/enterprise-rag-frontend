@@ -5,7 +5,7 @@ import AnswerStatusBadge from './AnswerStatusBadge.vue'
 import RetrievalFooter from './RetrievalFooter.vue'
 import { renderMarkdown, highlightAll } from '@/utils/markdown'
 import { ElMessage } from 'element-plus'
-import { CopyDocument, Refresh } from '@element-plus/icons-vue'
+import { ArrowRight, CopyDocument, Refresh } from '@element-plus/icons-vue'
 import { useChatStore } from '@/stores/chat'
 import robotIcon from '@/assets/icons/robot.svg?url'
 
@@ -27,6 +27,7 @@ const streamStage = computed(() =>
 )
 
 const statsExpanded = ref(false)
+const reasoningExpanded = ref(!!props.message.isStreaming)
 const contentRef = ref<HTMLElement | null>(null)
 
 const isAssistant = computed(() => props.message.role === 'assistant')
@@ -47,6 +48,12 @@ const renderedContent = computed(() =>
 const showActions = computed(() =>
   isAssistant.value && !props.message.isStreaming && !!effectiveContent.value
 )
+const reasoningSteps = computed(() => props.message.reasoningSteps ?? [])
+const reasoningSummary = computed(() => {
+  if (props.message.isStreaming) return streamStage.value || '正在分析'
+  const failed = reasoningSteps.value.some(step => step.status === 'FAILED')
+  return failed ? '分析完成，部分校验未通过' : `已完成 ${reasoningSteps.value.length} 个分析步骤`
+})
 
 // Highlight code blocks once streaming settles (or on mount for history).
 watch(
@@ -55,6 +62,14 @@ watch(
     if (!streaming) nextTick(() => highlightAll(contentRef.value))
   },
   { immediate: true },
+)
+
+watch(
+  () => props.message.isStreaming,
+  (streaming, previous) => {
+    if (streaming) reasoningExpanded.value = true
+    else if (previous) reasoningExpanded.value = false
+  },
 )
 
 // Click delegation for inline [S1] citation links produced by the renderer.
@@ -85,8 +100,37 @@ async function handleCopy() {
 
     <div class="message-body">
       <div class="message-bubble" :class="message.role">
-        <!-- Process (streaming stage / retrieval stats) sits above the answer body -->
-        <div v-if="streamStage" class="stream-process">
+        <!-- 用户可见的是安全推理摘要，不包含模型隐式思维链、Prompt 或证据正文。 -->
+        <div v-if="reasoningSteps.length" class="reasoning-panel">
+          <button
+            class="reasoning-trigger"
+            type="button"
+            :aria-expanded="reasoningExpanded"
+            @click="reasoningExpanded = !reasoningExpanded"
+          >
+            <span v-if="message.isStreaming" class="process-dots" aria-hidden="true">
+              <span class="process-dot"></span>
+              <span class="process-dot"></span>
+              <span class="process-dot"></span>
+            </span>
+            <span v-else class="reasoning-check" aria-hidden="true">✓</span>
+            <span class="reasoning-label">
+              <strong>思考过程</strong>
+              <span>{{ reasoningSummary }}</span>
+            </span>
+            <el-icon class="reasoning-arrow" :class="{ expanded: reasoningExpanded }"><ArrowRight /></el-icon>
+          </button>
+          <div v-show="reasoningExpanded" class="reasoning-steps">
+            <div v-for="step in reasoningSteps" :key="step.id" class="reasoning-step" :class="step.status.toLowerCase()">
+              <span class="reasoning-step-marker" aria-hidden="true"></span>
+              <span class="reasoning-step-copy">
+                <strong>{{ step.title }}</strong>
+                <span>{{ step.detail }}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="streamStage" class="stream-process">
           <span class="process-dots">
             <span class="process-dot"></span>
             <span class="process-dot"></span>
@@ -95,7 +139,7 @@ async function handleCopy() {
           <span class="stream-stage-text">{{ streamStage }}</span>
         </div>
         <RetrievalFooter
-          v-else-if="message.retrievalStats"
+          v-if="message.retrievalStats"
           :stats="message.retrievalStats"
           :expanded="statsExpanded"
           @toggle="statsExpanded = !statsExpanded"
@@ -264,6 +308,144 @@ async function handleCopy() {
   color: var(--color-text-tertiary, #6b7280);
 }
 
+/* ── Safe reasoning summary ── */
+.reasoning-panel {
+  margin: -2px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border-light, #f3f4f6);
+}
+
+.reasoning-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary, #374151);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reasoning-trigger:focus-visible {
+  outline: 2px solid var(--color-primary-lighter, #c7d2fe);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.reasoning-check {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.reasoning-label {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.reasoning-label strong {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.reasoning-label span {
+  overflow: hidden;
+  color: var(--color-text-muted, #9ca3af);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reasoning-arrow {
+  flex-shrink: 0;
+  color: var(--color-text-muted, #9ca3af);
+  font-size: 13px;
+  transition: transform 0.2s ease;
+}
+
+.reasoning-arrow.expanded { transform: rotate(90deg); }
+
+.reasoning-steps {
+  position: relative;
+  margin: 10px 0 0 8px;
+  padding-left: 17px;
+}
+
+.reasoning-steps::before {
+  content: '';
+  position: absolute;
+  top: 7px;
+  bottom: 9px;
+  left: 3px;
+  width: 1px;
+  background: var(--color-border, #e5e7eb);
+}
+
+.reasoning-step {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  padding: 0 0 10px;
+}
+
+.reasoning-step:last-child { padding-bottom: 0; }
+
+.reasoning-step-marker {
+  position: absolute;
+  top: 6px;
+  left: -17px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 3px var(--color-bg-white, #fff);
+}
+
+.reasoning-step.running .reasoning-step-marker {
+  background: var(--color-primary, #6366f1);
+  animation: reasoning-pulse 1.2s ease-in-out infinite;
+}
+
+.reasoning-step.failed .reasoning-step-marker { background: #f59e0b; }
+
+.reasoning-step-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.45;
+}
+
+.reasoning-step-copy strong {
+  color: var(--color-text-secondary, #374151);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reasoning-step-copy span {
+  color: var(--color-text-tertiary, #6b7280);
+  font-size: 11.5px;
+}
+
+@keyframes reasoning-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
 /* Citations */
 .message-citations {
   display: flex;
@@ -367,5 +549,6 @@ async function handleCopy() {
 
 @media (prefers-reduced-motion: reduce) {
   .process-dot { animation: none; opacity: 0.6; }
+  .reasoning-step.running .reasoning-step-marker { animation: none; }
 }
 </style>

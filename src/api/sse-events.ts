@@ -10,6 +10,7 @@ export type SSEEventType =
   | 'retrieval.completed'
   | 'rerank.completed'
   | 'generation.started'
+  | 'reasoning.step'
   | 'answer.delta'
   | 'citation.completed'
   | 'citation.add'
@@ -34,6 +35,16 @@ export interface SSEAnswerDelta {
   type: 'answer.delta'
   data: {
     content: string
+  }
+}
+
+export interface SSEReasoningStep {
+  type: 'reasoning.step'
+  data: {
+    id: string
+    title: string
+    detail: string
+    status: 'RUNNING' | 'COMPLETED' | 'FAILED'
   }
 }
 
@@ -120,6 +131,7 @@ export interface SSEStageEvent {
 export type SSEEvent =
   | SSEMessageStart
   | SSEStageEvent
+  | SSEReasoningStep
   | SSEAnswerDelta
   | SSECitationAdd
   | SSERetrievalSummary

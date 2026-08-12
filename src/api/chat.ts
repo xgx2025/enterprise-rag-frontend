@@ -35,6 +35,14 @@ const mockStats: RetrievalStats = {
   totalTimeMs: 2800,
 }
 
+const mockReasoningSteps = [
+  { id: 'understanding', title: '理解问题', detail: '已识别当前问题与知识库范围', status: 'COMPLETED' as const },
+  { id: 'retrieval', title: '检索知识库', detail: '检索完成，已获得相关候选依据', status: 'COMPLETED' as const },
+  { id: 'rerank', title: '筛选相关依据', detail: '已保留与问题最相关的制度依据', status: 'COMPLETED' as const },
+  { id: 'evidence', title: '评估证据充分性', detail: '已找到满足可信度门槛的依据', status: 'COMPLETED' as const },
+  { id: 'citation', title: '校验引用', detail: '引用一致性校验通过', status: 'COMPLETED' as const },
+]
+
 const mockConversations: Conversation[] = [
   {
     id: 'conv-1',
@@ -50,6 +58,7 @@ const mockConversations: Conversation[] = [
         id: 'msg-1-2', role: 'assistant',
         content: '根据2026年差旅管理制度（V3.0），深圳属于一线城市，住宿标准为每人每天不超过600元。该标准适用于华东区及其他所有区域的员工[S1]。同时，二线城市住宿标准为每人每天不超过400元，三四线城市不超过300元[S2]。',
         citations: [mockCitation1, mockCitation2],
+        reasoningSteps: mockReasoningSteps,
         answerStatus: 'SUPPORTED',
         retrievalStats: mockStats,
         timestamp: '2026-08-05T09:30:05Z',
@@ -72,6 +81,7 @@ const mockConversations: Conversation[] = [
         id: 'msg-2-2', role: 'assistant',
         content: '根据网约车报销实施细则[S3]，报销网约车费用需提供：\n1. 行程单截图（显示起终点及路线）\n2. 支付凭证（微信/支付宝/银行卡）\n3. 单次金额超过200元的，需在报销备注中注明事由',
         citations: [mockCitation3],
+        reasoningSteps: mockReasoningSteps,
         answerStatus: 'SUPPORTED',
         retrievalStats: { ...mockStats, totalRetrieved: 45, totalTimeMs: 2100 },
         timestamp: '2026-08-05T14:00:04Z',
@@ -151,6 +161,7 @@ export function sendMessage(data: SendMessageRequest): Promise<ChatMessage> {
           ? `关于"${data.query}"，根据企业制度文档，以下是相关回答：\\n\\n系统在知识库中检索到了相关制度依据。具体的回答将基于检索到的文档片段生成，并附上来源引用 [S1][S2]。`
           : '当前知识库未检索到相关制度依据，无法确认该信息。建议联系相关部门进行确认。',
         citations: hasKnowledge ? [mockCitation1] : undefined,
+        reasoningSteps: mockReasoningSteps,
         answerStatus: hasKnowledge ? 'SUPPORTED' : 'INSUFFICIENT',
         retrievalStats: hasKnowledge ? mockStats : undefined,
         timestamp: new Date().toISOString(),

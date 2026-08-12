@@ -25,11 +25,20 @@ export interface RetrievalStats {
   totalTimeMs: number
 }
 
+/** 面向用户的安全推理摘要，不包含模型隐式思维链或知识库正文。 */
+export interface ReasoningStep {
+  id: string
+  title: string
+  detail: string
+  status: 'RUNNING' | 'COMPLETED' | 'FAILED'
+}
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
   citations?: Citation[]
+  reasoningSteps?: ReasoningStep[]
   answerStatus?: AnswerStatus
   retrievalStats?: RetrievalStats
   timestamp: string
