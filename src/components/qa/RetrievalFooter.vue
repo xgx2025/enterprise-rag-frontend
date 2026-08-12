@@ -48,9 +48,9 @@ const emit = defineEmits<{
 
 <style scoped>
 .retrieval-footer {
-  margin-top: 12px;
-  border-top: 1px solid var(--color-border-light, #f3f4f6);
-  padding-top: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-light, #f3f4f6);
+  padding-bottom: 10px;
 }
 
 .retrieval-toggle {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import KnowledgeBaseList from '@/components/qa/KnowledgeBaseList.vue'
@@ -16,6 +16,11 @@ const inputText = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputFocused = ref(false)
 const sidebarCollapsed = ref(false)
+
+// While a real stream is in flight the streaming message renders its own stage
+// indicator; only fall back to the standalone typing row when there is none
+// (e.g. mock mode, where the completed message is pushed in a single shot).
+const hasStreamingMessage = computed(() => chatStore.messages.some(m => m.isStreaming))
 
 function scrollToBottom(smooth = true) {
   nextTick(() => {
@@ -138,7 +143,7 @@ watch(
           </transition-group>
 
           <transition name="typing-fade">
-            <div v-if="chatStore.thinking" class="typing-row">
+            <div v-if="chatStore.thinking && !hasStreamingMessage" class="typing-row">
               <div class="typing-avatar">
                 <Cpu />
               </div>

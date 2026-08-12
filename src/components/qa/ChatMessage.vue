@@ -6,6 +6,7 @@ import RetrievalFooter from './RetrievalFooter.vue'
 import { renderMarkdown, highlightAll } from '@/utils/markdown'
 import { ElMessage } from 'element-plus'
 import { Cpu, CopyDocument, Refresh } from '@element-plus/icons-vue'
+import { useChatStore } from '@/stores/chat'
 
 const props = defineProps<{
   message: ChatMessage
@@ -15,6 +16,14 @@ const emit = defineEmits<{
   'cite': [sourceId: string]
   'regenerate': [messageId: string]
 }>()
+
+const chatStore = useChatStore()
+
+// The streaming stage is a single global value in the store; surface it only
+// on the message currently being generated so completed history rows stay quiet.
+const streamStage = computed(() =>
+  props.message.isStreaming ? chatStore.streamStage : null,
+)
 
 const statsExpanded = ref(false)
 const contentRef = ref<HTMLElement | null>(null)
@@ -75,6 +84,22 @@ async function handleCopy() {
 
     <div class="message-body">
       <div class="message-bubble" :class="message.role">
+        <!-- Process (streaming stage / retrieval stats) sits above the answer body -->
+        <div v-if="streamStage" class="stream-process">
+          <span class="process-dots">
+            <span class="process-dot"></span>
+            <span class="process-dot"></span>
+            <span class="process-dot"></span>
+          </span>
+          <span class="stream-stage-text">{{ streamStage }}</span>
+        </div>
+        <RetrievalFooter
+          v-else-if="message.retrievalStats"
+          :stats="message.retrievalStats"
+          :expanded="statsExpanded"
+          @toggle="statsExpanded = !statsExpanded"
+        />
+
         <!-- User keeps plain text (pre-wrap); assistant renders markdown -->
         <div v-if="isAssistant" class="message-content md-content" ref="contentRef" v-html="renderedContent" @click="onContentClick" />
         <div v-else class="message-content">{{ message.content }}</div>
@@ -115,14 +140,6 @@ async function handleCopy() {
           </button>
         </div>
       </transition>
-
-      <!-- Retrieval stats -->
-      <RetrievalFooter
-        v-if="message.retrievalStats"
-        :stats="message.retrievalStats"
-        :expanded="statsExpanded"
-        @toggle="statsExpanded = !statsExpanded"
-      />
     </div>
   </div>
 </template>
@@ -155,8 +172,9 @@ async function handleCopy() {
   justify-content: center;
   font-size: 16px;
   flex-shrink: 0;
-  align-self: flex-end;
-  margin-bottom: 2px;
+  /* Top-align so the avatar sits beside the bubble's process header (which now
+     leads the message) instead of floating at the bottom next to the actions. */
+  align-self: flex-start;
 }
 
 /* Body */
@@ -198,6 +216,45 @@ async function handleCopy() {
 /* Assistant content is rendered markdown - let .md-content own the flow */
 .message-bubble.assistant .message-content {
   white-space: normal;
+}
+
+/* ── Streaming process (sits above the answer body while generating) ── */
+.stream-process {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border-light, #f3f4f6);
+}
+
+.process-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.process-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary-lighter, #c7d2fe);
+  animation: process-dot-pulse 1.5s infinite ease-in-out;
+}
+
+.process-dot:nth-child(1) { animation-delay: 0s; }
+.process-dot:nth-child(2) { animation-delay: 0.2s; }
+.process-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes process-dot-pulse {
+  0%, 60%, 100% { transform: scale(0.7); opacity: 0.4; background: var(--color-primary-lighter, #c7d2fe); }
+  30% { transform: scale(1.2); opacity: 1; background: var(--color-primary, #6366f1); }
+}
+
+.stream-stage-text {
+  font-size: 12.5px;
+  color: var(--color-text-tertiary, #6b7280);
 }
 
 /* Citations */
@@ -299,5 +356,9 @@ async function handleCopy() {
 /* Keep actions visible to keyboard/touch users even without hover */
 @media (hover: none) {
   .msg-actions { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .process-dot { animation: none; opacity: 0.6; }
 }
 </style>
