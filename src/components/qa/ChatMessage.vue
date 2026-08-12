@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import type { ChatMessage } from '@/api/types'
 import AnswerStatusBadge from './AnswerStatusBadge.vue'
 import RetrievalFooter from './RetrievalFooter.vue'
+import RetrievalResults from './RetrievalResults.vue'
 import { renderMarkdown, highlightAll } from '@/utils/markdown'
 import { ElMessage } from 'element-plus'
 import { ArrowRight, CopyDocument, Refresh } from '@element-plus/icons-vue'
@@ -143,6 +144,10 @@ async function handleCopy() {
           :stats="message.retrievalStats"
           :expanded="statsExpanded"
           @toggle="statsExpanded = !statsExpanded"
+        />
+        <RetrievalResults
+          v-if="message.retrievalResults && message.retrievalResults.length > 0"
+          :results="message.retrievalResults"
         />
 
         <!-- User keeps plain text (pre-wrap); assistant renders markdown -->

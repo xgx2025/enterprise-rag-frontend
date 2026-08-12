@@ -14,6 +14,7 @@ export type SSEEventType =
   | 'answer.delta'
   | 'citation.completed'
   | 'citation.add'
+  | 'retrieval.result'
   | 'retrieval.summary'
   | 'answer.status'
   | 'usage'
@@ -62,6 +63,11 @@ export interface SSECitationAdd {
     securityLevel: number
     score: number
   }
+}
+
+export interface SSERetrievalResult {
+  type: 'retrieval.result'
+  data: SSECitationAdd['data']
 }
 
 export interface SSERetrievalSummary {
@@ -134,6 +140,7 @@ export type SSEEvent =
   | SSEReasoningStep
   | SSEAnswerDelta
   | SSECitationAdd
+  | SSERetrievalResult
   | SSERetrievalSummary
   | SSEAnswerStatus
   | SSEUsage

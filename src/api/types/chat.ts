@@ -17,6 +17,20 @@ export interface Citation {
   score?: number
 }
 
+/** 经过权限过滤、重排并实际进入回答上下文的最终检索片段。 */
+export interface RetrievalResult {
+  sourceId: string
+  documentId: string
+  title: string
+  version: string
+  effectiveDate: string | null
+  sectionPath: string
+  pageNumber: number | null
+  quote: string
+  securityLevel: number
+  score: number
+}
+
 export interface RetrievalStats {
   totalRetrieved: number
   permissionFiltered: number
@@ -38,6 +52,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   citations?: Citation[]
+  retrievalResults?: RetrievalResult[]
   reasoningSteps?: ReasoningStep[]
   answerStatus?: AnswerStatus
   retrievalStats?: RetrievalStats

@@ -170,6 +170,7 @@ export const useChatStore = defineStore('chat', () => {
       role: 'assistant',
       content: '',
       citations: [],
+      retrievalResults: [],
       reasoningSteps: [],
       timestamp: new Date().toISOString(),
       isStreaming: true,
@@ -266,6 +267,22 @@ export const useChatStore = defineStore('chat', () => {
       case 'citation.add':
         if (message && !message.citations?.some(item => item.sourceId === event.data.sourceId)) {
           message.citations = [...(message.citations ?? []), {
+            sourceId: event.data.sourceId,
+            documentId: event.data.documentId,
+            title: event.data.title,
+            version: event.data.version,
+            effectiveDate: event.data.effectiveDate || null,
+            sectionPath: event.data.sectionPath,
+            pageNumber: event.data.pageNumber || null,
+            quote: event.data.quote,
+            securityLevel: event.data.securityLevel,
+            score: event.data.score,
+          }]
+        }
+        break
+      case 'retrieval.result':
+        if (message && !message.retrievalResults?.some(item => item.sourceId === event.data.sourceId)) {
+          message.retrievalResults = [...(message.retrievalResults ?? []), {
             sourceId: event.data.sourceId,
             documentId: event.data.documentId,
             title: event.data.title,
